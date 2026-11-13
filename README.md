@@ -33,6 +33,10 @@ designations. For vague questions and for parts its checks cannot settle, it can
 costs about a tenth of a cent). The key is stored encrypted by your operating system and only handed to the search
 engine on your own pc. Without a key everything works, with the library's own checks.
 
+**No account needed.** On your own pc Partsfinder works without signing in. Accounts are optional, for sharing one
+library with colleagues on your network (Settings → Accounts): you choose the administrator's name and password, and
+there is no default password. Accounts live only in the library on your own pc.
+
 ## Getting started (Windows)
 **With the installer:** download `Partsfinder-Setup-<version>.exe` from
 [Releases](https://github.com/Drilon1235/Partsfinder/releases) and run it. Everything is included: the app, the search

@@ -260,7 +260,8 @@ function roleText(w) {
 function applyRole() {
   const role = who.role;
   const signedIn = ready && (role === 'admin' || role === 'company');
-  const canSignIn = auth.accounts || auth.setup_needed || auth.keys_required;
+  // without accounts this pc needs no sign-in at all: accounts are made under Settings, for sharing the library
+  const canSignIn = auth.accounts || auth.keys_required;
   $('#signin-btn').hidden = signedIn || !canSignIn;
   const btn = $('#account');
   btn.hidden = !signedIn;
@@ -2316,6 +2317,12 @@ async function openSettings(focusAbout = false) {
     msg,
     el('p', { class: 'panel-note', text: 'Get a key at console.anthropic.com. The key is stored encrypted by your operating system and only handed to the search engine on this pc. Parts of companies marked “no AI” are never sent to the AI.' }));
   const packs = d.may_set ? await packsSection() : null;
+  const accounts = auth.setup_needed && !auth.accounts ? el('section', { class: 'settings-section', id: 'accounts' },
+    el('h3', { text: 'Accounts (optional)' }),
+    el('p', { class: 'panel-note', text: 'On your own pc you need no account: everything works without signing in. Accounts are for sharing this library with other people on your network, each with their own company library and groups.' }),
+    el('p', { class: 'panel-note', text: 'The first account is the administrator. You choose its name and password; there is no default password. The accounts are stored only in the library on this pc.' }),
+    el('div', { class: 'inline-form' }, el('button', { class: 'btn', type: 'button', text: 'Create the administrator account',
+      onclick: () => { settingsDlg.close(); showSignIn('admin'); } }))) : null;
   const about = el('section', { class: 'settings-section about', id: 'about' },
     el('div', { class: 'about-head' },
       el('img', { src: 'img/partsfinder-icon.svg', alt: '', width: '56', height: '56' }),
@@ -2327,7 +2334,7 @@ async function openSettings(focusAbout = false) {
       el('a', { href: GITHUB, target: '_blank', rel: 'noopener', text: 'github.com/Drilon1235/Partsfinder' }), '.'),
     el('p', { class: 'panel-note', text: 'The names and logos of Partsfinder and DZ IT Services are not covered by that licence.' }));
   settingsDlg.replaceChildren(panelHead('settings-title', 'Settings', 'Partsfinder', () => settingsDlg.close()),
-    el('div', { class: 'panel-body' }, ai, packs, about));
+    el('div', { class: 'panel-body' }, ai, packs, accounts, about));
   if (!settingsDlg.open) settingsDlg.showModal();
   if (focusAbout) about.scrollIntoView({ block: 'start' });
   else if (d.may_set) key.focus();
@@ -2390,7 +2397,7 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   const q = input.value;
   if (!ready || busy) return;
-  input.select();                 // the question stays: refine it, or just type to replace it
+  input.value = '';               // an empty bar for the next question; the question stays above its answer
   ask(q);
 });
 

@@ -32,7 +32,7 @@
     // accounts (window.__signin): not signed in = the general library; anna / correct-horse = company Janssen Engineering
     config: () => Promise.resolve({ apiUrl: '', backend: { state: 'ready' } }),
     who: () => Promise.resolve(window.__who || { role: window.__signin ? 'public' : 'local', company_id: null, groups: [] }),
-    authInfo: () => Promise.resolve({ accounts: Boolean(window.__signin), setup_needed: false, keys_required: false }),
+    authInfo: () => Promise.resolve({ accounts: Boolean(window.__signin), setup_needed: !window.__signin, keys_required: false }),
     login: (user, pw) => {
       if (pw !== 'correct-horse') return Promise.resolve({ ok: false, error: 'Wrong username or password.' });
       window.__who = user === 'drilon' ? { role: 'admin', username: 'drilon', company_id: null, groups: [] }

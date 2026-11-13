@@ -117,7 +117,7 @@ async function main() {
       await page.press('#query', 'Enter');
       await page.waitForSelector('.card-name >> text=Hex bolt M8x30', { timeout: 30000 });
       const q = await page.inputValue('#query');
-      if (q !== 'hex bolt M8') throw new Error(`the question was cleared ("${q}")`);
+      if (q !== '') throw new Error(`the search bar was not emptied ("${q}")`);
     });
   } else {
     await step('a question on the empty library gets an answer', async () => {
@@ -129,6 +129,10 @@ async function main() {
       if (!['ready', 'limited'].includes(state)) throw new Error(`status is ${state}`);
     });
   }
+
+  await step('no sign-in needed on this pc', async () => {
+    if (await page.isVisible('#signin-btn')) throw new Error('a Sign in button is shown without any accounts');
+  });
 
   await step('settings: the AI is off without a key', async () => {
     await page.click('#settings-btn');
@@ -161,9 +165,11 @@ async function main() {
     if (!text.includes(`Version ${version}`) || !text.includes('AGPL')) throw new Error(text);
   });
 
-  await step('settings: the data packs section', async () => {
+  await step('settings: the data packs section and the optional accounts', async () => {
     const text = await page.textContent('#settings[open] #packs');
     if (!text.includes('Data packs') || !text.includes('Install a data pack')) throw new Error(text);
+    const acc = await page.textContent('#settings[open] #accounts');
+    if (!acc.includes('no default password')) throw new Error(acc);
   });
 
   console.log(`\n${passed} steps passed.`);

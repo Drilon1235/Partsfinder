@@ -28,7 +28,8 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
       `partsfinder.db` with a one-time rename of the old file, folder rule files)
 - [x] Bring your own key: Settings in the app, key encrypted by the OS, handed to the search engine on this pc only
       (`POST /settings/ai`); no Claude subscription path
-- [x] First start: the user creates the admin account; no default account
+- [x] No sign-in needed on your own pc; accounts are optional (Settings → Accounts), the user chooses the
+      administrator's name and password; no default account or password
 - [x] The app in the DZ brand: navy theme, Inter and Space Grotesk, Partsfinder icon, About in Settings
 - [x] In-app confirmation instead of the browser's confirm box; the question stays in the search bar; an honest
       message for parts nobody could judge
