@@ -21,7 +21,7 @@ Partsfinder is an open-source (MIT) desktop app by DZ IT Services. Tick off what
 
 ## Phase P0 — Brand and rules
 - [x] DZ IT Services brand kit in `brand/` (marks, icons, colours, fonts, `brand/BRAND.md`)
-- [x] Rules for contributors and AI assistants (`CLAUDE.md`)
+- [x] Rules for contributors (`CONTRIBUTING.md`)
 
 ## Phase P1 — Open-source ready
 - [x] Name Partsfinder everywhere (package `partsfinder`, app, environment variables `PARTSFINDER_*`, database

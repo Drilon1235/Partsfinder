@@ -191,7 +191,7 @@ class ClaudeEnricher:
 
 
 def make_enricher(settings: Any, taxonomy: Taxonomy) -> ClaudeEnricher | None:
-    """Claude for metadata if an AI is available (API key or subscription), otherwise None."""
+    """Claude for metadata if an AI is available (the user's own API key), otherwise None."""
     from ..ai import AIError, make_client
 
     try:

@@ -46,3 +46,7 @@ app/test-results/
 
 # the owner's own logo folder next to the code (the logos in git are in brand/)
 /Logo/
+
+# notes for the maintainer's own AI assistant, kept on the maintainer's pc
+CLAUDE.md
+AGENTS.md
