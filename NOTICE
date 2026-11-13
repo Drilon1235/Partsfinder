@@ -1,0 +1,27 @@
+Partsfinder
+Copyright (C) 2026 DZ IT Services (https://dzitservices.be)
+
+Partsfinder is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License version 3 (see LICENSE).
+
+Trademarks
+----------
+The names "Partsfinder", "Stepix" and "DZ IT Services" and their logos (the brand/ folder and the icons in
+app/build/ and app/renderer/img/) are trademarks of DZ IT Services. They are not licensed under the AGPL;
+all rights reserved. A fork must use its own name and logo.
+
+Third-party material in this repository
+---------------------------------------
+- Inter (app/renderer/fonts/inter-*.woff2, brand/fonts/inter-*.woff2)
+  Copyright The Inter Project Authors. SIL Open Font License 1.1 (OFL-Inter.txt).
+- Space Grotesk (app/renderer/fonts/space-grotesk-*.woff2, brand/fonts/space-grotesk-*.woff2)
+  Copyright The Space Grotesk Project Authors. SIL Open Font License 1.1 (OFL-SpaceGrotesk.txt).
+
+Data that the scripts can download or generate (not in this repository)
+-----------------------------------------------------------------------
+- FreeCAD parts library (https://github.com/FreeCAD/FreeCAD-library): CC-BY 3.0, by the FreeCAD-library
+  contributors. Attribution: data/global/freecad/ATTRIBUTION.md.
+- Standard parts generated with bd_warehouse (https://github.com/gumyr/bd_warehouse): Apache License 2.0.
+- Dimensions of standard parts (ISO, DIN, EN) are facts from public standards; no standard text is copied.
+
+Python and Node.js packages are installed by the setup scripts from PyPI and npm, each under its own licence.

@@ -1,0 +1,59 @@
+/*
+ * DZ IT Services design tokens, shared by dzitservices.com, Partsfinder and Stepix.
+ * Source of truth: brand/tokens.json (keep both files in sync).
+ * Fonts: brand/fonts (SIL Open Font License). Load them with @font-face, see BRAND.md.
+ */
+:root {
+  /* Brand colours, sampled from the DZ logo */
+  --dz-ink: #0F2235;        /* headings, body text on light */
+  --dz-deep: #1F4E79;       /* logo dark end, "IT SERVICES" */
+  --dz-blue: #2A6DB0;       /* primary action on light (5.4:1 on white) */
+  --dz-azure: #3E86CE;      /* logo light-blue */
+  --dz-sky: #41A0DC;        /* logo top, primary action on dark */
+  --dz-teal: #3BA6B8;       /* logo Z top */
+  --dz-node: #58CEEC;       /* the "node" dot: accents and focus, never text on white */
+  --dz-gradient: linear-gradient(160deg, #41A0DC 0%, #2E78B8 50%, #1F4E79 100%);
+
+  /* Neutrals (light theme) */
+  --dz-bg: #FFFFFF;
+  --dz-surface: #F5F8FB;
+  --dz-surface-2: #EBF1F7;
+  --dz-border: #DCE4EE;
+  --dz-text: var(--dz-ink);
+  --dz-text-muted: #5B6B7D;  /* 5.5:1 on white */
+  --dz-primary: var(--dz-blue);
+  --dz-primary-hover: #245E98;
+  --dz-on-primary: #FFFFFF;
+  --dz-focus: var(--dz-node);
+
+  /* Status */
+  --dz-success: #1E7F4F;
+  --dz-warning: #A15C07;
+  --dz-danger: #B42318;
+
+  /* Type */
+  --dz-font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --dz-font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --dz-font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+  /* Shape and depth */
+  --dz-radius-sm: 6px;
+  --dz-radius: 10px;
+  --dz-radius-lg: 16px;
+  --dz-shadow: 0 1px 2px rgb(15 34 53 / 6%), 0 4px 16px rgb(15 34 53 / 8%);
+}
+
+/* Dark theme: apps follow the OS setting; the website stays light. */
+@media (prefers-color-scheme: dark) {
+  :root.dz-auto-dark {
+    --dz-bg: #0B1624;
+    --dz-surface: #102033;
+    --dz-surface-2: #16293F;
+    --dz-border: #23384F;
+    --dz-text: #E8EEF5;
+    --dz-text-muted: #9AACBF;
+    --dz-primary: var(--dz-sky);
+    --dz-primary-hover: #5DB2E6;
+    --dz-on-primary: #0B1624;
+  }
+}

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+backend/setup_log.txt
+backend/check_log.txt
+backend/ai_log.txt
+backend/eval_log.txt
+backend/eval_engineering_log.txt
+backend/engineering_log.txt
+backend/sync_log.txt
+backend/examples/downloads/
+
+# Node / Electron
+node_modules/
+app/dist/
+
+# Database & generated data
+*.db
+*.sqlite
+*.db-wal
+*.db-shm
+# everything in data/ stays local (CAD files, previews, meshes, imports); only the folder skeleton is in git
+data/**
+!data/**/
+!data/**/.gitkeep
+!data/global/freecad/ATTRIBUTION.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# graphify knowledge graph (local, rebuilt with /graphify)
+graphify-out/
+
+# folders companies upload from their own pc (CAD files of any format, rules, JSON)
+data/companies/*/uploads/

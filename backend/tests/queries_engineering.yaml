@@ -1,0 +1,98 @@
+# Engineering test questions: how a mechanical engineer actually asks (see docs/06_TESTPLAN.md).
+# Run against the real library after importing data/global/engineering and the standard parts:
+#     python eval_engineering.py [--verbose]
+#
+# Per question:
+#   q        the question, in engineer language (designation, standard, size, grade)
+#   ids      the first result must be one of these ids (exact part)
+#   name_has the first result's name must contain all of these (if no ids, or as alternative)
+#   status   expected overall status: found (a part meets every requirement), partial (only
+#            close matches with stated deviations), none (nothing usable)
+#   deviation  for partial: this spec must be reported as deviating in the first result
+# A wrong-spec part as "fits" is counted as a hard error ("false fit").
+
+# ---- bearings ------------------------------------------------------------------------------------
+- {q: "deep groove ball bearing 6204-2RS", ids: [eng-bearing-6204-2rs, bd-sealed-deep-groove-ball-bearing-20x47x14], status: found}
+- {q: "6205 ZZ", ids: [eng-bearing-6205-2z], status: found}
+- {q: "608zz bearing", ids: [eng-bearing-608-2z], status: found}
+- {q: "bearing 20x47x14", name_has: ["20x47x14"], status: found}
+- {q: "ball bearing 6306-2RS", ids: [eng-bearing-6306-2rs], status: found}
+- {q: "ball bearing 6206-2RS1", ids: [eng-bearing-6206-2rs, ball-bearing-6206-2rs], status: found}
+- {q: "pillow block bearing for 25 mm shaft", ids: [eng-pillow-block-ucp205], status: found}
+- {q: "UCP208", ids: [eng-pillow-block-ucp208], status: found}
+- {q: "linear bearing LM12UU", ids: [eng-linear-bushing-lm12uu, fc-lm12uu-dea003], status: found}
+- {q: "deep groove ball bearing 6212-2RS", status: partial, deviation: designation}   # not in the library: nearest, flagged
+
+# ---- fasteners -----------------------------------------------------------------------------------
+- {q: "DIN 912 M8x30 12.9", name_has: ["Socket head", "M8x30"], status: found}
+- {q: "ISO 4762 M6x20 A2-70", name_has: ["Socket head", "M6x20"], status: found}
+- {q: "socket head cap screw M10x40 A4-80", name_has: ["Socket head", "M10x40"], status: found}
+- {q: "hex bolt DIN 933 M12x50 8.8", name_has: ["Hex bolt", "M12x50"], status: found}
+- {q: "hex nut ISO 4032 M16", name_has: ["nut", "M16"], status: found}
+- {q: "M10 nyloc nut DIN 985", ids: [eng-nyloc-iso10511-m10], status: found}
+- {q: "flat washer DIN 125 M8", name_has: ["M8"]}
+- {q: "socket head cap screw M8x30 property class 14.9", status: partial}
+
+# ---- motion --------------------------------------------------------------------------------------
+- {q: "NEMA 23 stepper motor 1.89 Nm 8 mm shaft", ids: [eng-stepper-nema23-76], status: found}
+- {q: "NEMA 17 stepper 0.42 Nm", ids: [eng-stepper-nema17-40], status: found}
+- {q: "NEMA 34 stepper motor at least 8 Nm", ids: [eng-stepper-nema34-98, eng-stepper-nema34-114], status: found}
+- {q: "NEMA 17 stepper motor 5 Nm", status: partial, deviation: holding_torque_nm}
+- {q: "GT2 pulley 20 teeth 5 mm bore", ids: [eng-pulley-gt2-20t-b5-w6, eng-pulley-gt2-20t-b5-w10], status: found}
+- {q: "GT2 timing pulley 40T bore 8 for 10 mm belt", ids: [eng-pulley-gt2-40t-b8-w10], status: found}
+- {q: "HTD 5M pulley 30 teeth bore 12", ids: [eng-pulley-htd5m-30t-b12], status: found}
+- {q: "spur gear module 1.5 z40", ids: [eng-spur-gear-m1_5-z40], name_has: ["module 1.5", "40 teeth"], status: found}
+- {q: "spur gear module 2 with 30 teeth", ids: [eng-spur-gear-m2-z30], name_has: ["module 2", "30 teeth"], status: found}
+- {q: "jaw coupling 6.35 to 8 mm", ids: [eng-coupling-jaw-d19-6_35-8]}
+- {q: "linear guide rail size 20 length 500", ids: [eng-rail-size20-l500], status: found}
+- {q: "carriage for size 15 profile rail", ids: [eng-carriage-size15], status: found}
+- {q: "linear shaft 12 mm h6 500 mm", ids: [eng-linear-shaft-d12-l500], status: found}
+
+# ---- structure, fluid -----------------------------------------------------------------------------
+- {q: "aluminium profile 40x40 slot 8 length 1000", ids: [eng-tslot-40x40-s8-l1000], status: found}
+- {q: "t-slot extrusion 30x30 slot 8", ids: [eng-tslot-30x30-s8-l500, eng-tslot-30x30-s8-l1000], status: found}
+- {q: "pneumatic cylinder ISO 15552 bore 50 stroke 100", ids: [eng-cylinder-iso15552-d50-s100], status: found}
+- {q: "ISO 6432 cylinder ø20x50", ids: [eng-cylinder-iso6432-d20-s50], status: found}
+- {q: "pneumatic cylinder ISO 15552 bore 125 stroke 100", status: partial, deviation: piston_diameter_mm}
+- {q: "weld neck flange DN50 PN16", ids: [eng-flange-en1092-t11-dn50-pn16], status: found}
+- {q: "blind flange EN 1092-1 DN100 PN16 1.4404", ids: [eng-flange-en1092-t05-dn100-pn16], status: found}
+- {q: "weld neck flange DN80 PN40", status: partial, deviation: pn}
+
+# ---- not in the library: honest "none" ------------------------------------------------------------
+- {q: "harmonic drive strain wave gear ratio 100", status: none}
+- {q: "servo motor 400 W with absolute encoder", status: none}
+- {q: "hydraulic gear pump 10 cc/rev", status: none}
+- {q: "planetary gearbox ratio 10:1 NEMA 23", status: none}
+
+# ---- small parts ---------------------------------------------------------------------------------
+- {q: "dowel pin 6x30", ids: [eng-dowel-iso8734-6x30], status: found}
+- {q: "threaded rod M10 1000 mm", ids: [eng-threaded-rod-din976-m10-l1000, threaded-rod-m10x1000], status: found}
+- {q: "t-nut slot 8 M5", ids: [eng-tnut-slot8-m5], status: found}
+- {q: "corner bracket for 40x40 profile slot 8", ids: [eng-corner-bracket-40x40], status: found}
+- {q: "shaft collar 12 mm bore", ids: [eng-shaft-collar-din705-12], status: found}
+
+# ---- vague: the library names the open defining value (with values that exist) instead of guessing ----
+- {q: "a bolt", need: thread}
+- {q: "hex nut", need: thread}
+- {q: "flat washer", need: thread}
+- {q: "socket head cap screw M8", need: length_mm}
+- {q: "threaded rod M10", need: length_mm}
+- {q: "deep groove ball bearing", need: [designation, inner_diameter_mm]}
+- {q: "pillow block bearing", need: designation}
+- {q: "stepper motor", need: frame_size}
+- {q: "GT2 timing pulley", need: teeth}
+- {q: "spur gear", need: module}
+- {q: "weld neck flange", need: dn}
+- {q: "T-slot aluminium profile", need: profile_size}
+- {q: "shaft coupling", need: bore_mm}
+- {q: "pneumatic cylinder ISO 15552", need: piston_diameter_mm}
+
+# ---- extreme: every requirement checked or flagged, never a forced fit -------------------------------------------
+- {q: "hex bolt M8x30 8.8 dacromet", status: partial, deviation: feature}
+- {q: "ISO 4762 M6x20 A2-70 food grade", status: partial, deviation: feature}
+- {q: "socket head cap screw M8x30 exactly ISO 4762", name_has: ["Socket head", "M8x30"]}
+- {q: "flat washer M10 not galvanized", name_has: ["washer", "M10"]}
+
+# ---- every word counts (Drilon, 10 Nov: "make me a green bolt" showed green buttons) ------------------------------
+- {q: "galvanized hex bolt M10x40", status: partial}
+- {q: "stainless hex nut M8", name_has: ["nut", "M8"]}

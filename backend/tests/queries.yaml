@@ -1,0 +1,74 @@
+# 50 test questions for the evaluation (phase 8). See docs/06_TESTPLAN.md.
+#
+# Per question:
+#   q          the question
+#   group      clear | vague | requirements | none | separation
+#   company    (optional) search as this company
+#   filters    (optional) hard requirements, as another program would send them
+# What is correct (the first result must meet this):
+#   ids        one of these ids
+#   category   category starts with this
+#   material   material contains this text
+#   company_top  the result comes from this company library
+#   status     none = nothing may be proposed
+# Every question also checks that nothing of another company is among the results.
+
+# ---- clear: the part exists, the question is precise ------------------------------------------
+- {group: clear, q: "hex bolt M8 x 40 DIN 933", ids: [bolt-din933-m8x40-88, bolt-din933-m8x40-a2]}
+- {group: clear, q: "socket head bolt m6 25mm", ids: [socket-iso4762-m6x25]}
+- {group: clear, q: "lock nut M10", ids: [locknut-din985-m10]}
+- {group: clear, q: "washer for m12", ids: [washer-din125-m12], name_has: [washer, M12]}
+- {group: clear, q: "green garden chair", ids: [garden-chair-green]}
+- {group: clear, q: "ball bearing 6204", ids: [ball-bearing-6204-2rs]}
+- {group: clear, q: "IPE 200 beam", ids: [ipe-200]}
+- {group: clear, q: "square tube 40x40", ids: [tube-40x40x2, tube-40x40x3]}
+- {group: clear, q: "aluminium profile 40x40 with slot", ids: [alu-system-profile-40x40]}
+- {group: clear, q: "flange DN50", ids: [weld-flange-dn50-pn16, blind-flange-dn50-pn16]}
+- {group: clear, q: "bar stool", category: furniture/seating/stool}
+- {group: clear, q: "stainless steel angle bracket", category: connections/bracket/angle-bracket, material: stainless steel}
+- {group: clear, q: "UNP 100 profile", ids: [unp-100]}
+- {group: clear, q: "compression spring wire 2 mm outer diameter 16", ids: [compression-spring-2x16x40]}
+- {group: clear, q: "swivel caster 75 mm", ids: [swivel-caster-75]}
+- {group: clear, q: "O-ring 20 x 2.5", ids: [o-ring-20x2_5]}
+- {group: clear, q: "oak dining table 2000 x 1000", ids: [dining-table-2000x1000]}
+- {group: clear, q: "wedge anchor M10 for concrete", ids: [wedge-anchor-m10x90]}
+- {group: clear, q: "hex nut M8", ids: [nut-din934-m8, locknut-din985-m8], name_has: [hex nut, M8]}
+- {group: clear, q: "spur gear module 2 with 20 teeth", ids: [spur-gear-m2-z20], name_has: [spur gear, module 2, 20 teeth]}
+
+# ---- vague: in everyday words, without the technical term --------------------------------------
+- {group: vague, q: "something to hang a shelf on the wall", category: connections/bracket/wall-bracket}
+- {group: vague, q: "waterproof box for electronics", category: enclosures/electronics}
+- {group: vague, q: "rubber sealing ring", category: piping/sealing}
+- {group: vague, q: "small wheel for under a cart", category: machine-elements/foot/swivel-caster}
+- {group: vague, q: "planter for in the greenhouse", category: horticulture/cultivation/tray}
+- {group: vague, q: "table for in a workshop", category: furniture/tables/workbench}
+- {group: vague, q: "clamp to fix a pipe to the wall", category: connections/bracket/u-bracket}
+- {group: vague, q: "cover around moving machine parts", category: enclosures/machine}
+- {group: vague, q: "ball bearing for a 20 mm shaft", category: drivetrain/bearing}
+- {group: vague, q: "something to level a machine on an uneven floor", category: machine-elements/foot/leveling-foot}
+
+# ---- requirements: a caller sends filters that are never relaxed ------------------------------------
+- {group: requirements, q: "chair", filters: {max_dims_mm: [400, 400, 600]}, category: furniture/seating/chair, ids: [child-chair-yellow, child-chair-green]}
+- {group: requirements, q: "angle bracket", filters: {material: stainless steel, max_dims_mm: [60, 60, 60]}, category: connections/bracket/angle-bracket, material: stainless steel}
+- {group: requirements, q: "bolt", filters: {standards: [ISO 4762]}, category: fasteners/bolt/socket-head-bolt}
+- {group: requirements, q: "table", filters: {sectors: [office]}, category: furniture/tables/desk}
+- {group: requirements, q: "enclosure", filters: {material: aluminium, min_dims_mm: [150, 150, 80]}, ids: [enclosure-aluminium-160x160x90]}
+- {group: requirements, q: "profile 40x40", filters: {category: profiles/aluminium}, ids: [alu-system-profile-40x40], name_has: [profile, 40x40]}
+- {group: requirements, q: "chair", filters: {kind: assembly, color: red}, ids: [canteen-chair-red]}
+- {group: requirements, q: "ball bearing", filters: {max_dims_mm: [30, 30, 10]}, ids: [ball-bearing-6000-2rs, ball-bearing-6001-2rs]}
+
+# ---- none: does not exist in the library, honest "nothing found" --------------------------------------
+- {group: none, q: "titanium rocket engine nozzle", status: none}
+- {group: none, q: "heart valve implant", status: none}
+- {group: none, q: "solar panel 400 watt", status: none}
+- {group: none, q: "aircraft propeller", status: none}
+- {group: none, q: "espresso machine", status: none}
+- {group: none, q: "carbon bicycle frame", status: none}
+- {group: none, q: "smartphone case", status: none}
+
+# ---- separation: own parts yes, those of another company never ---------------------------------
+- {group: separation, q: "growing tray for tomatoes", company: company_a, company_top: company_a}
+- {group: separation, q: "black furniture handle", company: company_b, company_top: company_b}
+- {group: separation, q: "dining table Nora", company: company_a, category: furniture/tables}
+- {group: separation, q: "greenhouse bracket for a growing gutter", company: company_b, category: horticulture/greenhouse/gutter}   # only company A has the bracket: B gets the general gutter at most, never A's bracket
+- {group: separation, q: "Growing tray TB-1000", category: horticulture/cultivation/tray}

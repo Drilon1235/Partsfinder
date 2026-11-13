@@ -1,0 +1,29 @@
+# Partsfinder - Python packages
+# Install: see scripts/setup_windows.ps1 of scripts/setup_mac.sh
+
+# Base
+pydantic>=2.7
+python-dotenv>=1.0
+pyyaml>=6.0
+numpy>=1.26
+
+# Database and search
+sqlite-vec>=0.1.6
+
+# AI
+anthropic>=0.40
+sentence-transformers>=3.0
+
+# Reading CAD
+cadquery>=2.4
+trimesh>=4.4
+matplotlib>=3.8
+
+# API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+requests>=2.32
+
+# Testing
+pytest>=8.0
+

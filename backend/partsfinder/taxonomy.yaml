@@ -1,0 +1,110 @@
+# Classification of all parts: category -> subcategory -> types.
+# A category_path is "category/subcategory" or "category/subcategory/type".
+# Can be aligned with the industry standard eCl@ss later.
+# To add something, add a line here; no code needs to change.
+
+version: 2
+
+categories:
+  furniture:
+    seating: [chair, stool, bench, office-chair, garden-chair]
+    tables: [dining-table, desk, workbench, side-table, garden-table]
+    storage: [cabinet, rack, drawer, locker]
+    bedroom: [bed]
+  fasteners:
+    bolt: [hex-bolt, socket-head-bolt, carriage-bolt, set-bolt]
+    nut: [hex-nut, lock-nut, flange-nut, cap-nut, square-nut, insert-nut]
+    screw: [wood-screw, sheet-metal-screw, machine-screw, countersunk-screw, button-head-screw, set-screw]
+    washer: [flat-washer, spring-washer, toothed-washer, lock-washer]
+    pin: [dowel-pin, split-pin, roll-pin, key]
+    rivet: [blind-rivet, solid-rivet]
+    anchor: [wedge-anchor, plug, chemical-anchor]
+  connections:
+    bracket: [angle-bracket, u-bracket, mounting-bracket, wall-bracket]
+    hinge: [door-hinge, piano-hinge, concealed-hinge]
+    coupling: [shaft-coupling, quick-coupling, pipe-coupling]
+    plate: [connection-plate, base-plate, gusset-plate]
+  profiles:
+    steel: [box-section, angle-profile, u-profile, ipe, hea, tube, strip]
+    aluminium: [system-profile, box-section, angle-profile, tube]
+    plastic: [profile, tube]
+  drivetrain:
+    bearing: [ball-bearing, roller-bearing, plain-bearing, pillow-block, linear-bushing]
+    shaft: [shaft, spindle, threaded-rod]
+    gear: [spur, helical, worm, gear-rack]
+    transmission: [pulley, sprocket, timing-pulley, chain, servo-horn]
+    spring: [compression-spring, extension-spring, torsion-spring]
+  enclosures:
+    electronics: [cabinet, lid, front-panel]
+    machine: [guard, cover, frame]
+  construction:
+    structure: [beam, column, girder, truss]
+    finishing: [window-frame, panel, molding, door, window]
+    element: [building-block, foundation, stairs]
+    sanitary: [toilet, bidet, shower-tray, washbasin]
+  horticulture:
+    greenhouse: [greenhouse-profile, gutter, window-part, ventilation]
+    cultivation: [tray, growing-table, pot, hanging-system]
+  piping:
+    pipe: [straight-pipe, elbow, tee, reducer]
+    sealing: [o-ring, gasket, sealing-ring]
+    flange: [weld-flange, blind-flange, loose-flange]
+  electrical:
+    motor: [electric-motor, servo-motor, stepper-motor]
+    power: [battery, power-module]
+    controls: [push-button, switch, limit-switch]
+    cooling: [fan]
+  electronics:
+    component: [connector, ic, resistor, capacitor, inductor, transistor, led, fuse, switch]
+    module: [pcb, single-board-computer, display, sensor, storage-device, antenna]
+  pneumatics:
+    cylinder: [pneumatic-cylinder, hydraulic-cylinder]
+    valve: [valve, check-valve]
+    fitting: [coupling, hose-barb]
+    pump: [vacuum-pump, water-pump]
+  hvac:
+    duct: [air-duct, grille]
+  machine-elements:
+    handle: [bar-handle, knob, lever]
+    foot: [leveling-foot, wheel, swivel-caster]
+    guide: [linear-guide, slide, rail, wheel]
+    cnc: [gantry-plate, mounting-plate, spacer]
+    3d-printer: [hotend, extruder, nozzle]
+  tanks:
+    tank: [water-tank, barrel]
+  logistics:
+    load: [pallet, container, crate]
+  tools:
+    hand-tools: [hammer, wrench, pliers]
+    measuring-tools: [caliper, measuring-tape]
+    storage: [case, insert]
+  medical:
+    device: [ventilator, aid]
+  consumer-products:
+    household: [appliance, kitchenware]
+    packaging: [bottle, can, cup, capsule]
+    miscellaneous: [toy, sports, keychain, coin, symbol]
+  other:
+    unknown: []          # for imports that could not (yet) be classified
+
+sectors:
+  - construction
+  - horticulture
+  - agriculture
+  - industry
+  - machine-building
+  - furniture
+  - hospitality
+  - office
+  - automotive
+  - electronics
+  - logistics
+  - medical
+  - food
+  - energy
+  - maritime
+  - consumer-products
+
+# Suggested material groups (not enforced, the 'material' field is free text)
+materials: [steel, stainless-steel, aluminium, brass, copper, cast-iron, titanium,
+            pp, pe, pa, pom, pvc, abs, pc, rubber, wood, glass, composite]
