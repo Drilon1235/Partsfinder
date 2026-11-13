@@ -67,7 +67,7 @@ from .ingest.pipeline import _rel, _under, ingest_folder, remove_folder, remove_
 from .ingest.rules import ACCESS_FILE, RuleError, parse_access
 from . import engineering
 from .mass import estimate_mass_g
-from . import preview
+from . import packs, preview, remote
 from .models import Part
 from .repository import AccessError, Repository
 from .similar import find_duplicates, find_similar
@@ -216,6 +216,10 @@ class UploadFinishIn(BaseModel):
     access: str | None = Field(default=None, max_length=400)
 
 
+class PackInstallIn(BaseModel):
+    path: str = Field(min_length=1, max_length=1000)
+
+
 class RemoveIn(BaseModel):
     folder: str = Field(min_length=1)
     company_id: str | None = None
@@ -225,6 +229,16 @@ class RemoveIn(BaseModel):
 def _resolve(path: str) -> Path:
     p = Path(path)
     return p if p.is_absolute() else PROJECT_DIR / p
+
+
+def _local(path: str, data_dir: Path) -> Path:
+    """The file on this pc: a data pack file that stays at its library is downloaded once (remote.py)."""
+    if remote.is_remote(path):
+        try:
+            return remote.fetch(path, data_dir / "cache" / "files")
+        except remote.RemoteFileError as exc:
+            raise HTTPException(502, str(exc)) from exc
+    return _resolve(path)
 
 
 def _url(path: str, company_id: str | None, **params: Any) -> str:
@@ -885,7 +899,7 @@ def create_app(
             else next((f for f in files if f.is_primary), files[0] if files else None)
         if chosen is None:
             raise HTTPException(404, f"No file in format '{format}' for this part")
-        path = _resolve(chosen.path)
+        path = _local(chosen.path, s.data_dir)
         if not path.is_file():
             raise HTTPException(410, "The file is no longer at the stored location")
         log(request, company_id, "download", part.id, chosen.format)
@@ -906,7 +920,7 @@ def create_app(
         company_id = company_for(request, company_id)
         with lock:
             part = get_visible(part_id, company_id)
-        source = preview.mesh_source(part, _resolve)
+        source = preview.mesh_source(part, lambda p: _local(p, s.data_dir))
         if source is None:
             raise HTTPException(404, "No STEP or STL file to show in 3D for this part")
         try:
@@ -1025,6 +1039,72 @@ def create_app(
             repo.audit(actor_of(request), body.company_id, "remove", body.folder, f"{len(removed)} parts")
             answers.clear()
         return {"removed": removed, "total": len(removed)}
+
+    # ---- data packs: openly licensed libraries for the general library (see packs.py) -------------------
+    @app.get("/packs")
+    def list_packs() -> dict[str, Any]:
+        with lock:
+            return {"installed": packs.installed(repo)}
+
+    @app.post("/packs/install")
+    def install_pack(body: PackInstallIn, request: Request) -> dict[str, Any]:
+        """Admin, on this pc: install a pack (folder or .zip on this pc) in the background; follow it with
+        GET /ingest/{job_id}."""
+        require_admin(request)
+        if not request.client or request.client.host not in LOCAL_ADDRESSES:
+            raise HTTPException(403, "Data packs can only be installed on the pc of the search engine")
+        src = Path(body.path).expanduser()
+        if not src.exists():
+            raise HTTPException(400, f"Not found: {src}")
+        actor = actor_of(request)
+        with jobs_lock:
+            if any(j["status"] == "running" for j in jobs.values()):
+                raise HTTPException(409, "An import is already running; try again when it is done")
+            job_id = uuid.uuid4().hex[:12]
+            jobs[job_id] = {"job_id": job_id, "status": "running", "folder": str(src), "company_id": None,
+                            "lines": 0, "log_tail": [], "kind": "pack"}
+
+        def go() -> None:
+            job, job_conn = jobs[job_id], None
+            try:
+                job_conn = connect(db_file, db_dim, check_same_thread=False)
+                job_repo = Repository(job_conn, repo.taxonomy)
+
+                def log(line: str) -> None:
+                    job["log_tail"] = (job["log_tail"] + [line])[-8:]
+                    job["lines"] += 1
+
+                def progress(n: int, total: int) -> None:
+                    job["progress"] = {"done": n, "total": total}
+
+                report = packs.install(src, job_repo, embedder, s.data_dir, log=log, progress=progress)
+                job_repo.audit(actor, None, "pack-install", report["name"],
+                               f"{report['added']} added, {report['updated']} updated")
+                job["report"] = report
+                job["status"] = "done"
+                with answers_lock:
+                    answers.clear()
+            except Exception as exc:  # noqa: BLE001 - the job must never disappear silently
+                job["error"] = f"{type(exc).__name__}: {exc}"
+                job["status"] = "error"
+            finally:
+                if job_conn is not None:
+                    job_conn.close()
+        threading.Thread(target=go, daemon=True, name=f"pack-{job_id}").start()
+        return {"job_id": job_id, "status": "running"}
+
+    @app.post("/packs/{name}/remove")
+    def remove_pack(name: str, request: Request) -> dict[str, Any]:
+        """Admin: remove an installed pack and exactly its parts."""
+        require_admin(request)
+        with lock:
+            try:
+                result = packs.remove(name, repo, s.data_dir, log=lambda _: None)
+            except packs.PackError as exc:
+                raise HTTPException(404, str(exc)) from exc
+            repo.audit(actor_of(request), None, "pack-remove", name, f"{result['removed']} parts")
+            answers.clear()
+        return result
 
     @app.get("/ingest/{job_id}")
     def ingest_status(job_id: str, request: Request, company_id: str | None = None) -> dict[str, Any]:

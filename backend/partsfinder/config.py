@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = BACKEND_DIR.parent
+# The base of relative paths in the library and of data/ (thumbnails, packs). The installed app sets
+# PARTSFINDER_HOME to the user's own data folder, so nothing is written next to the program.
+PROJECT_DIR = Path(os.getenv("PARTSFINDER_HOME") or BACKEND_DIR.parent).resolve()
 
 try:
     from dotenv import load_dotenv

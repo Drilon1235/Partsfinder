@@ -1097,9 +1097,18 @@ function originOf(res) {
       `Only people with ${gs.map((g) => `"${g}"`).join(' or ')} see this part. It is never sent to an outside AI.`];
   }
   if (res.library === 'company') return ['company', 'Your company', `Your company's own library (${res.company_id})`];
-  return res.source === 'FreeCAD-library' ? ['freecad', 'FreeCAD', 'General library, from the FreeCAD parts library']
-    : ['standard', 'Standard', 'General library of standard parts'];
+  const pack = OPEN_SOURCES[res.source];
+  if (pack) return [pack[0], pack[1], `General library, from ${pack[2]}`];
+  return ['standard', 'Standard', 'General library of standard parts'];
 }
+
+// the open libraries of the general library (data packs): badge, short name, where it comes from
+const OPEN_SOURCES = {
+  'FreeCAD-library': ['freecad', 'FreeCAD', 'the FreeCAD parts library (CC-BY 3.0)'],
+  'freecad-library': ['freecad', 'FreeCAD', 'the FreeCAD parts library (CC-BY 3.0)'],
+  'kicad-3d': ['kicad', 'KiCad', 'the KiCad 3D model library (CC-BY-SA 4.0)'],
+  'adafruit-cad-parts': ['adafruit', 'Adafruit', 'the Adafruit CAD parts (MIT)'],
+};
 
 function primaryFile(res) {
   return [...(res.files || [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary))[0] || null;
@@ -1359,7 +1368,11 @@ function openDetail(id) {
         el('ul', { class: 'plain' }, uses.map((u) => el('li', { text: `${u.name} (${u.quantity} ×)` }))));
     }
   });
-  if (res.license) info.append(el('p', { class: 'note', text: `License: ${res.license}` }));
+  if (res.license) {
+    const origin = /^https:\/\//.test(res.source_ref || '')
+      ? el('a', { href: res.source_ref, target: '_blank', rel: 'noopener', text: 'original file' }) : null;
+    info.append(el('p', { class: 'note' }, `License: ${res.license}`, ...(origin ? [' · ', origin] : [])));
+  }
 
   // ---- secondary: compare, feedback, similar ------------------------------------------------
   const pick = pickButton(res);
@@ -2302,6 +2315,7 @@ async function openSettings(focusAbout = false) {
     d.may_set ? aiForm : el('p', { class: 'panel-note', text: 'Only the administrator of this library can set the AI key.' }),
     msg,
     el('p', { class: 'panel-note', text: 'Get a key at console.anthropic.com. The key is stored encrypted by your operating system and only handed to the search engine on this pc. Parts of companies marked “no AI” are never sent to the AI.' }));
+  const packs = d.may_set ? await packsSection() : null;
   const about = el('section', { class: 'settings-section about', id: 'about' },
     el('div', { class: 'about-head' },
       el('img', { src: 'img/partsfinder-icon.svg', alt: '', width: '56', height: '56' }),
@@ -2313,11 +2327,61 @@ async function openSettings(focusAbout = false) {
       el('a', { href: GITHUB, target: '_blank', rel: 'noopener', text: 'github.com/Drilon1235/Partsfinder' }), '.'),
     el('p', { class: 'panel-note', text: 'The names and logos of Partsfinder and DZ IT Services are not covered by that licence.' }));
   settingsDlg.replaceChildren(panelHead('settings-title', 'Settings', 'Partsfinder', () => settingsDlg.close()),
-    el('div', { class: 'panel-body' }, ai, about));
+    el('div', { class: 'panel-body' }, ai, packs, about));
   if (!settingsDlg.open) settingsDlg.showModal();
   if (focusAbout) about.scrollIntoView({ block: 'start' });
   else if (d.may_set) key.focus();
 }
+let packSay = null;
+let packProgressBound = false;
+// data packs: thousands of openly licensed parts (KiCad, FreeCAD, standard parts, ...) in the general library
+async function packsSection() {
+  const r = await window.partsfinder.packs();
+  const list = r.ok ? r.data.installed : [];
+  const msg = el('p', { class: 'form-msg', role: 'status', hidden: true });
+  const say = (text, ok = false) => { msg.textContent = text; msg.hidden = !text; msg.dataset.ok = String(ok); };
+  const rows = list.length
+    ? el('ul', { class: 'plain pack-list' }, list.map((p) => el('li', { class: 'pack-row' },
+      el('div', {},
+        el('strong', { text: p.title || p.name }),
+        el('span', { class: 'panel-note', text: ` ${Number(p.installed_parts ?? p.parts).toLocaleString('en')} parts · ${p.license} · version ${p.version}` })),
+      el('button', { class: 'btn btn-ghost btn-small', type: 'button', text: 'Remove',
+        onclick: async (e) => {
+          if (!await askConfirm(`Remove ${p.title || p.name}?`, `This removes its ${Number(p.installed_parts ?? p.parts).toLocaleString('en')} parts from the general library. You can install the pack again later.`, 'Remove')) return;
+          e.target.disabled = true;
+          const res = await window.partsfinder.packRemove(p.name);
+          if (!res.ok) { say(res.error); e.target.disabled = false; return; }
+          toast(`${res.data.removed.toLocaleString('en')} parts removed.`, true);
+          await refreshHealth();
+          await openSettings();
+        } }))))
+    : el('p', { class: 'panel-note', text: r.ok ? 'No data packs installed yet.' : r.error });
+  const install = el('button', { class: 'btn btn-primary', type: 'button', text: 'Install a data pack…',
+    onclick: async () => {
+      install.disabled = true;
+      say('Installing… the search keeps working meanwhile.', true);
+      const res = await window.partsfinder.packInstall();
+      install.disabled = false;
+      if (res.canceled) { say(''); return; }
+      if (!res.ok) { say(res.error); return; }
+      const d = res.data;
+      toast(`${d.title || d.name}: ${d.added.toLocaleString('en')} parts added, ${d.updated.toLocaleString('en')} updated.`, true);
+      await refreshHealth();
+      await openSettings();
+    } });
+  packSay = say;
+  if (!packProgressBound) {
+    packProgressBound = true;
+    window.partsfinder.onPackProgress?.((p) => {
+      if (p.total && packSay) packSay(`Installing… ${p.done.toLocaleString('en')} of ${p.total.toLocaleString('en')} parts.`, true);
+    });
+  }
+  return el('section', { class: 'settings-section', id: 'packs' },
+    el('h3', { text: 'Data packs' }),
+    el('p', { class: 'panel-note', text: 'Open libraries of ready-made parts for the general library: standard parts, electronic components and more, each under its own open licence. Every part shows its licence and links to its original file.' }),
+    rows, el('div', { class: 'inline-form' }, install), msg);
+}
+
 $('#settings-btn').addEventListener('click', () => openSettings());
 $('#brand').addEventListener('click', () => openSettings(true));
 

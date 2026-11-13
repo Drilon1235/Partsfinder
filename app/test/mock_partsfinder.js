@@ -72,6 +72,12 @@
     aiSettings: () => ok({ may_set: true, saved: false, encrypted: true, ai_available: false, ai_model: null,
       ai_note: 'No API key: add your own Anthropic API key in Settings (or ANTHROPIC_API_KEY in backend/.env)' }),
     setAiKey: (key) => ok({ ai_available: Boolean(key), ai_model: 'claude-haiku-5-5', stored: 'stored' }),
+    packs: () => ok({ installed: [
+      { name: 'standard-parts', title: 'Standard parts (ISO, DIN, ASME)', license: 'Apache-2.0', version: '2026-11-13', parts: 6213, installed_parts: 6213 },
+      { name: 'kicad-3d', title: 'KiCad 3D models (electronic components)', license: 'CC-BY-SA-4.0 WITH KiCad-libraries-exception', version: '2026-11-13', parts: 6189, installed_parts: 6189 }] }),
+    packInstall: () => ok({ name: 'freecad-library', title: 'FreeCAD parts library', added: 2497, updated: 0 }),
+    packRemove: (name) => ok({ name, removed: 6189 }),
+    onPackProgress: () => {},
     health: () => ok({ ai_available: true, image_search_available: true, parts: 1809,
       ai_model: 'claude-haiku-5-5' }),
     companies: () => ok([{ id: 'janssen-engineering', name: 'Janssen Engineering', parts: 128, restricted_parts: 14, confidential: false, people: 2, groups: ['nuclear'] }, { id: 'verhoeven-machinebouw', name: 'Verhoeven Machinebouw', parts: 40, restricted_parts: 0, confidential: true, people: 1, groups: [] }]),

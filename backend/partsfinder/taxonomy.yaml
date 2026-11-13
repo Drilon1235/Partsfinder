@@ -25,7 +25,7 @@ categories:
     coupling: [shaft-coupling, quick-coupling, pipe-coupling]
     plate: [connection-plate, base-plate, gusset-plate]
   profiles:
-    steel: [box-section, angle-profile, u-profile, ipe, hea, tube, strip]
+    steel: [box-section, angle-profile, u-profile, ipe, hea, heb, hem, upe, tube, strip, flat-bar, round-bar, square-bar]
     aluminium: [system-profile, box-section, angle-profile, tube]
     plastic: [profile, tube]
   drivetrain:
@@ -51,12 +51,16 @@ categories:
     flange: [weld-flange, blind-flange, loose-flange]
   electrical:
     motor: [electric-motor, servo-motor, stepper-motor]
-    power: [battery, power-module]
-    controls: [push-button, switch, limit-switch]
+    power: [battery, battery-holder, power-module, power-supply]
+    controls: [push-button, switch, limit-switch, arcade-button, joystick]
     cooling: [fan]
+    audio: [speaker, microphone]
   electronics:
-    component: [connector, ic, resistor, capacitor, inductor, transistor, led, fuse, switch]
-    module: [pcb, single-board-computer, display, sensor, storage-device, antenna]
+    component: [connector, pin-header, terminal-block, ic, resistor, capacitor, inductor, transistor, diode, led, fuse,
+                switch, crystal, oscillator, relay, transformer, potentiometer, buzzer, ferrite, varistor, filter,
+                optocoupler, sensor, heatsink, test-point, mounting-hardware, vacuum-tube]
+    module: [pcb, development-board, breakout-board, single-board-computer, display, led-matrix, sensor, storage-device,
+             antenna, rf-module, camera, power-converter]
   pneumatics:
     cylinder: [pneumatic-cylinder, hydraulic-cylinder]
     valve: [valve, check-valve]

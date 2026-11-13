@@ -920,3 +920,11 @@ dialog::backdrop { background: rgba(9, 9, 11, .55); -webkit-backdrop-filter: blu
 .confirm h2 { margin: 0 0 var(--s2); font-size: var(--fs-6); }
 .confirm p { margin: 0 0 var(--s5); color: var(--text-2); line-height: 1.5; }
 @media (max-width: 600px) { .brand-name { display: none; } }
+
+/* data packs in Settings */
+.pack-list { display: grid; gap: 8px; margin: 10px 0 12px; padding: 0; list-style: none; }
+.pack-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px;
+  border: 1px solid var(--line-2); border-radius: var(--r-l); background: var(--sunken); }
+.pack-row strong { display: block; }
+.card-origin[data-origin="kicad"], .card-origin[data-origin="adafruit"], .card-origin[data-origin="freecad"] {
+  color: var(--text-2); }

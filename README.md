@@ -54,6 +54,11 @@ On a Mac: `bash scripts/setup_mac.sh`, then `cd app && npm install && npm start`
 This repository holds no CAD data. To start:
 - `engineering.bat` builds a generic engineering library (about 400 parts: ISO bolts and nuts, bearings, profiles,
   motors, pulleys, ...) and imports it.
+- **Data packs** add thousands of openly licensed parts at once: ~6,000 standard parts (ISO, DIN, ASME), ~6,200
+  KiCad electronic components, ~2,500 parts of the FreeCAD library and ~490 Adafruit boards. Install a pack in the app
+  (**Settings → Data packs → Install a data pack**) or with
+  `backend\.venv\Scripts\python -m partsfinder.packs install PACK.zip`. Every part keeps its own licence (shown in
+  Details) and links to its original file. Build the packs yourself with [scripts/datapacks](scripts/datapacks/README.md).
 - Import your own folders: in the app, **Companies and people → General library → Import a folder**, or
   `backend\.venv\Scripts\python -m partsfinder.ingest PATH\TO\FOLDER [--company acme]`.
   A JSON file next to a CAD file adds metadata; see [docs/03_DATAMODEL.md](docs/03_DATAMODEL.md).

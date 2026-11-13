@@ -183,6 +183,25 @@ An existing database gets the tables `users` and `sessions` on the next start (n
 ## Schema 2 (10 Nov 2026)
 An existing database gets `parts.access_group`, `companies.confidential` and `audit_log` on the next start (added columns; nothing is rebuilt). An older program refuses a schema 2 database. The connection runs with `PRAGMA secure_delete = ON`: deleted parts are overwritten in the database file.
 
+## Data packs (no database change)
+A data pack is an openly licensed parts library, built by `scripts/datapacks/build.py` (folder or `.zip`):
+| File | Content |
+|---|---|
+| `pack.json` | `format` (1), `name` (a-z, 0-9, -), `title`, `version`, `license`, `homepage`, `files` (`remote` or `included`), `source_revision`, `parts` |
+| `parts.jsonl` | one part per line: the fields of `PartCreate` (id, name, description, category_path, sectors, tags, standards, properties, material, bbox_mm, volume_mm3, checksum, source, source_ref, license); `thumbnail_path` relative to the pack; `files[].path` relative to the pack (`files/...`) or an https URL at the original repository, pinned to a commit |
+| `thumbnails/<id>.png` | preview per part |
+| `files/` | the CAD files, for packs that ship them |
+| `LICENSE.txt`, `ATTRIBUTION.md` | the licence of the data and who made it |
+
+Installing (`partsfinder/packs.py`) copies the pack to `data/packs/<name>/`, adds its parts to the general library
+(same id: updated; same file already in the library under another id: skipped), computes the search vectors with this
+installation's own model and records the pack in `meta` as `pack:<name>` (pack.json + `installed_at`,
+`installed_parts`). Removing deletes exactly the ids of its `parts.jsonl`.
+- `part_files.path` may be an https URL (`raw.githubusercontent.com` or `gitlab.com` only, `remote.py`): the file is
+  downloaded once, when someone opens or views it, to `data/cache/files/` (a cache, safe to delete).
+- `PARTSFINDER_HOME` (optional) is the base of relative paths and of `data/`; the installed app sets it to the user's
+  own data folder.
+
 ## Derived files (no database change)
 - `data/meshes/<part id>-<key>.stl`: 3D meshes for the app's viewer (`GET /parts/{id}/mesh`), tessellated from the STEP file on first use and named after the part, so removing a part removes its cache too. A cache: safe to delete, outside git, not referenced from the database. (Older caches without the part id in the name can simply be deleted.)
 - Previews (`data/thumbnails/...png`) of elongated parts (longest / second dimension > 6) show a piece of 3 × the second dimension (ingest/thumbnail.py); existing ones are redone with `scripts/demo/rethumb_elongated.py` (only PNG files change).

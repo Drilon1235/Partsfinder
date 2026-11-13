@@ -233,6 +233,17 @@ Imports all CAD files from a folder (a share such as `\\\\nas\\cad` works too). 
 
 **`"sync": true`**: also removes the parts of this folder whose file is gone or is now excluded, completely (see `POST /remove`). If no CAD file is found at all, or more than half of the folder's parts (and more than 20) would go, nothing is removed and `warnings` says why, unless `"allow_mass_removal": true`.
 
+## Data packs: `GET /packs`, `POST /packs/install` (admin, this pc), `POST /packs/{name}/remove` (admin)
+- `GET /packs` → `{"installed": [pack.json + installed_at, installed_parts]}`.
+- `POST /packs/install` `{"path": "C:/.../partsfinder-pack-kicad-3d-2026-11-13.zip"}` (a pack folder or .zip on the
+  pc of the search engine; only from that pc) → `{"job_id"}`; follow it with `GET /ingest/{job_id}`: `progress`
+  `{"done", "total"}`, and when done `report` `{"name", "parts", "added", "updated", "unchanged", "duplicates",
+  "failed", "errors"}`. Searching keeps working meanwhile; one import or install at a time (409 otherwise).
+- `POST /packs/{name}/remove` → `{"name", "removed"}`; 404 when the pack is not installed.
+- Parts from a pack have `source`, `source_ref` (the original file) and `license`. Their file can be an https URL at
+  the original library: `GET /parts/{id}/file` and `/mesh` download it once (502 with a plain message when the
+  internet is not reachable).
+
 ## `GET /audit?company_id=...&action=...&limit=200` (admin)
 Who searched for and downloaded what, newest first, for one company (without `company_id`: the general library). Each entry: `id`, `at`, `actor` (`local`, or `key:` + the first 12 characters of the key's SHA-256; never the key), `company_id`, `action` (`search`, `search_image`, `download`, `mesh`, `datasheet`, `ingest`, `remove`, `settings`), `target` (part id or folder; never a part name) and `detail` (the question, the file format, or counts). Previews (thumbnails) are not logged. Writing the log does not clear the remembered answers.
 

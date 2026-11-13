@@ -1,0 +1,66 @@
+# Builds the data packs (scripts/datapacks) by hand: Actions > Data packs > Run workflow.
+# Each pack becomes an artifact (partsfinder-pack-<name>-<date>.zip); once the repository is public they can be
+# attached to a release.
+name: Data packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      packs:
+        description: "Packs to build (comma separated)"
+        default: "standard-parts,kicad-3d,freecad-library,adafruit-cad-parts"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        pack: [standard-parts, kicad-3d, freecad-library, adafruit-cad-parts]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Wanted?
+        id: wanted
+        run: echo "yes=${{ contains(format(',{0},', github.event.inputs.packs), format(',{0},', matrix.pack)) }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.wanted.outputs.yes == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.wanted.outputs.yes == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Python packages (CPU-only torch)
+        if: steps.wanted.outputs.yes == 'true'
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r backend/requirements.txt
+      - name: Source
+        if: steps.wanted.outputs.yes == 'true'
+        run: |
+          sparse() {  # url dir: only the STEP files and the licence
+            git clone -q --filter=blob:none --no-checkout "$1" "$2"
+            git -C "$2" sparse-checkout set --no-cone '*.step' '*.STEP' '*.stp' '*.STP' 'LICENSE*'
+            git -C "$2" checkout -q
+          }
+          case "${{ matrix.pack }}" in
+            kicad-3d) sparse https://gitlab.com/kicad/libraries/kicad-packages3D.git src ;;   # the current library
+            freecad-library) sparse https://github.com/FreeCAD/FreeCAD-library.git src ;;
+            adafruit-cad-parts) sparse https://github.com/adafruit/Adafruit_CAD_Parts.git src ;;
+            standard-parts)
+              python -m venv .venv-bd && .venv-bd/bin/pip install -q bd_warehouse==0.4.0
+              .venv-bd/bin/python scripts/datapacks/generate_standard_parts.py --out src --workers 4 ;;
+          esac
+      - name: Build the pack
+        if: steps.wanted.outputs.yes == 'true'
+        run: python scripts/datapacks/build.py ${{ matrix.pack }} --src src --out dist/packs --workers 4 --zip
+      - uses: actions/upload-artifact@v4
+        if: steps.wanted.outputs.yes == 'true'
+        with:
+          name: partsfinder-pack-${{ matrix.pack }}
+          path: dist/packs/*.zip
+          retention-days: 30
+          compression-level: 0

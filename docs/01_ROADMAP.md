@@ -40,14 +40,20 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
 - [x] Electron end-to-end test in the repository (from the source on every push, the installed app on every build)
 
 ## Phase P2 — A much larger library (open licences only)
-- [ ] Source, author and licence per part, shown in Details; licence filter
-- [ ] Parametric standard parts (bd_warehouse, Apache-2.0): ISO/DIN fasteners, bearings, flanges, pipes, O-rings,
-      retaining rings, keys, gears; stored as parameters, STEP made on demand
-- [ ] The full FreeCAD parts library (CC-BY 3.0)
-- [ ] KiCad 3D models (CC-BY-SA 4.0 with exception) as a separate data pack
-- [ ] BOLTS collections and open-hardware boards where the licence allows it
+- [x] Data packs: one builder for every source (`scripts/datapacks/build.py`), install and remove in the app
+      (Settings → Data packs), on the command line (`python -m partsfinder.packs`) or the API (`/packs`);
+      nothing of it in git
+- [x] Source and licence per part, shown in Details with a link to the original file; files of open libraries stay
+      at their repository (pinned commit) and are downloaded once when opened
+- [x] Standard parts generated with bd_warehouse (Apache-2.0): ~6,000 ISO/DIN/ASME bolts, screws, nuts, washers,
+      bearings, O-rings, retaining rings, keys, flanges and gears
+- [x] The full FreeCAD parts library (CC-BY 3.0), ~2,500 parts
+- [x] KiCad 3D models (CC-BY-SA 4.0 with exception), ~6,200 electronic components
+- [x] Adafruit CAD parts (MIT), ~490 boards, breakouts and displays
+- [ ] Licence filter in the filters panel
+- [ ] The newest KiCad models from GitLab, BOLTS collections, NopSCADlib vitamins (GPL-3), built by GitHub Actions
+- [ ] Data packs as release downloads once the repository is public; "Download" next to each pack in the app
 - [ ] Live sources on the user's own key: Nexar/Octopart, DigiKey, Mouser (price, stock, datasheet)
-- [ ] Download script for the data packs (nothing in git)
 - [ ] Benchmark from 26 to ~100 questions; measured before and after every source
 
 ## Later

@@ -161,6 +161,11 @@ async function main() {
     if (!text.includes(`Version ${version}`) || !text.includes('AGPL')) throw new Error(text);
   });
 
+  await step('settings: the data packs section', async () => {
+    const text = await page.textContent('#settings[open] #packs');
+    if (!text.includes('Data packs') || !text.includes('Install a data pack')) throw new Error(text);
+  });
+
   console.log(`\n${passed} steps passed.`);
 }
 

@@ -17,6 +17,30 @@ runs the AI on their own API key and pays Anthropic directly; Partsfinder never 
 encrypted by the operating system and only handed to the search engine on the same pc. Without a key every question
 is answered by the library's own checks, which settle most technical questions anyway.
 
+## Data packs: a large library from open licences only (13 Nov 2026)
+- **Only sources whose licence allows redistribution, used as published:** git repositories with a licence file,
+  cloned at one commit. No scraping, no catalogue data copied from manufacturers' sites, no licence requests.
+  Chosen after a search of the open CAD libraries:
+  | Pack | Source | Licence | Parts |
+  |---|---|---|---|
+  | `standard-parts` | generated with bd_warehouse from the standard dimensions | Apache-2.0 | ~6,000 |
+  | `kicad-3d` | KiCad 3D models (github.com/KiCad/kicad-packages3D) | CC-BY-SA 4.0 + KiCad exception | ~6,200 |
+  | `freecad-library` | FreeCAD parts library | CC-BY 3.0 | ~2,500 |
+  | `adafruit-cad-parts` | Adafruit CAD parts | MIT | ~490 |
+  Not taken (for now): GrabCAD, TraceParts, McMaster, Thingiverse/Printables (terms of use or a licence per model),
+  the ABC and Fusion 360 Gallery datasets (research licences), the FreeCAD Fasteners workbench (GPL; bd_warehouse
+  covers the same standards). Later: the newest KiCad library from GitLab, BOLTS, NopSCADlib (GPL-3).
+- **Names of makes are kept where the open library has them** (a KiCad "JST XH" connector, an Adafruit board): they
+  are part of what the openly licensed model is. Our own generated parts still carry no make or part number.
+- **Files stay at their library**: a pack links each part to its original file at a pinned commit and ships only
+  metadata and previews (a few MB per thousand parts). The file is downloaded once when someone opens it. The
+  generated standard parts have no original, so that pack ships its STEP files.
+- **Each pack keeps its own licence**, shown per part with a link to the original; the KiCad pack stays CC-BY-SA as
+  its licence asks. Using a part in your own design never puts your design under that licence.
+- **Search vectors are computed when installing**, with the user's own model: a pack works with any model and stays
+  small.
+- **Packs are built, not stored:** `scripts/datapacks/` makes them from the sources; nothing of them is in git.
+
 ## The installer (13 Nov 2026)
 - **Everything in one installer, nothing to set up.** The search engine is bundled with PyInstaller (one folder,
   CPU-only torch) and the embedding model `intfloat/multilingual-e5-small` (MIT) is shipped with it, so the app works

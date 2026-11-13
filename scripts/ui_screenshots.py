@@ -112,6 +112,8 @@ async def screens(page, shot) -> None:
     await page.click("#settings-btn")                      # your own AI key, and about
     await page.wait_for_timeout(300)
     await shot("26-settings")
+    await page.evaluate("document.querySelector('#packs').scrollIntoView()")
+    await shot("26b-data-packs")
     await page.evaluate("document.querySelector('#about').scrollIntoView()")
     await shot("27-about")
     await page.keyboard.press("Escape")

@@ -36,3 +36,12 @@ Bundled in the Windows installer (not in this repository)
   Technology (Apache-2.0 and LGPL-2.1 with exception; linked dynamically, the libraries are separate files that can be
   replaced), FastAPI, Uvicorn, NumPy, trimesh, matplotlib and sqlite-vec (MIT/BSD-style). Their licence files are
   inside the installed search engine (resources/backend).
+
+Data packs (optional downloads, not in this repository)
+-------------------------------------------------------
+The data packs built by scripts/datapacks/ contain parts of other projects, each under its own licence, which is
+shown per part in the app and included in the pack (LICENSE.txt, ATTRIBUTION.md):
+- KiCad 3D models: CC-BY-SA 4.0 with the KiCad libraries exception, by the KiCad library contributors.
+- FreeCAD parts library: CC-BY 3.0, by the FreeCAD-library contributors.
+- Adafruit CAD parts: MIT, Copyright (c) 2016 Adafruit Industries.
+- Standard parts generated with bd_warehouse (Apache-2.0, by Gumyr and contributors): Apache-2.0.
