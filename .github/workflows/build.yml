@@ -102,11 +102,24 @@ jobs:
         with:
           name: e2e-failure-windows
           path: app/test-results/
-      - name: Draft release
+      - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A draft release the maintainer prepared (notes, data packs) gets the tested installer and is published;
+          # otherwise a new draft with generated notes is made.
+          $tag = "${{ github.ref_name }}"
           $exe = Get-ChildItem dist/app/Partsfinder-Setup-*.exe | Select-Object -First 1
-          gh release create "${{ github.ref_name }}" $exe.FullName --draft --generate-notes --title "Partsfinder ${{ github.ref_name }}"
+          $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          $tags = gh release list --limit 100 --json tagName --jq '.[].tagName'
+          if ($tags -contains $tag) {
+            gh release upload $tag $exe.FullName --clobber
+            $body = (gh release view $tag --json body --jq .body) -join "`n"
+            $body = $body.Replace('<!-- installer -->', "| $($exe.Name) | ``$sha`` |")
+            Set-Content -Path notes.md -Value $body -Encoding utf8
+            gh release edit $tag --notes-file notes.md --draft=false --latest
+          } else {
+            gh release create $tag $exe.FullName --draft --generate-notes --title "Partsfinder $tag"
+          }

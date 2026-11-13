@@ -3,8 +3,11 @@
 GitHub Actions builds the installer ([../.github/workflows/build.yml](../.github/workflows/build.yml)):
 - every push runs the backend tests and the end-to-end test of the app from the source;
 - a version tag (`v0.2.0`, equal to `version` in `app/package.json`) or *Actions → Build → Run workflow* also builds
-  `Partsfinder-Setup-<version>.exe`, runs the end-to-end test on the installed app, and for a tag makes a **draft**
-  GitHub Release. Check it, then publish it on GitHub.
+  `Partsfinder-Setup-<version>.exe`, runs the end-to-end test on the installed app, and for a tag:
+  - when a **draft release for that tag already exists** (prepared by the maintainer with the release notes and the
+    data pack zips as assets), it adds the tested installer, writes its SHA-256 where the notes say
+    `<!-- installer -->`, and **publishes** the release;
+  - otherwise it makes a new draft release with generated notes; check it, then publish it on GitHub.
 
 ## Build it yourself (Windows, from the repository folder)
 ```
