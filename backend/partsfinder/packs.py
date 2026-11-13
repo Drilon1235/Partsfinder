@@ -238,8 +238,9 @@ def main(argv: list[str] | None = None) -> int:
             remove(args.name, repo, s.data_dir)
             return 0
         row = conn.execute("SELECT value FROM meta WHERE key='embedder'").fetchone()
+        # the same model as the vectors already in this library
         embedder = HashingEmbedder(s.embedding_dim) if (row and row[0] == "hashing") else \
-            SentenceTransformerEmbedder(s.embedding_model)
+            SentenceTransformerEmbedder(row[0] if row else s.embedding_model, s.embedding_dim)
         if not row:
             with conn:
                 conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('embedder', ?)", (s.embedding_model,))

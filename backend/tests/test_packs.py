@@ -163,3 +163,29 @@ def test_only_the_admin_installs_packs(tmp_path):
     src = make_pack(tmp_path / "src")
     assert c.post("/packs/install", json={"path": str(src)}, headers={"Authorization": "Bearer k-acme"}).status_code == 403
     assert c.post("/packs/test-pack/remove", headers={"Authorization": "Bearer k-acme"}).status_code == 403
+
+
+def test_command_line_installs_with_the_library_model(tmp_path, monkeypatch):
+    """The command line uses the model of the vectors already in the library (not the hashing test embedder)."""
+    from partsfinder import config, ingest
+
+    used = []
+
+    class FakeModel(HashingEmbedder):
+        def __init__(self, name, dim):
+            used.append((name, dim))
+            super().__init__(dim)
+
+    monkeypatch.setattr(ingest, "SentenceTransformerEmbedder", FakeModel)
+    monkeypatch.setattr(config, "PROJECT_DIR", tmp_path)
+    monkeypatch.setenv("PARTSFINDER_DATA_DIR", str(tmp_path / "data"))
+    db = tmp_path / "lib.db"
+    conn = connect(db, get_settings().embedding_dim)
+    with conn:
+        conn.execute("INSERT INTO meta(key, value) VALUES ('embedder', 'intfloat/multilingual-e5-small')")
+    conn.close()
+    src = make_pack(tmp_path / "src")
+    assert packs.main(["--db", str(db), "install", str(src)]) == 0
+    assert used == [("intfloat/multilingual-e5-small", get_settings().embedding_dim)]
+    assert packs.main(["--db", str(db), "list"]) == 0
+    assert packs.main(["--db", str(db), "remove", "test-pack"]) == 0
