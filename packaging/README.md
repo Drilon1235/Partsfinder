@@ -2,7 +2,7 @@
 
 GitHub Actions builds the installer ([../.github/workflows/build.yml](../.github/workflows/build.yml)):
 - every push runs the backend tests and the end-to-end test of the app from the source;
-- a version tag (`v0.1.0`, equal to `version` in `app/package.json`) or *Actions → Build → Run workflow* also builds
+- a version tag (`v0.2.0`, equal to `version` in `app/package.json`) or *Actions → Build → Run workflow* also builds
   `Partsfinder-Setup-<version>.exe`, runs the end-to-end test on the installed app, and for a tag makes a **draft**
   GitHub Release. Check it, then publish it on GitHub.
 

@@ -35,7 +35,12 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
       message for parts nobody could judge
 - [x] `LICENSE` (AGPL-3.0), README, `CONTRIBUTING.md`, `SECURITY.md`, `NOTICE`
 - [x] Secret scan of the tree; new repository with a clean history
-- [ ] Make the repository public
+- [x] Make the repository public (v0.2.0), with a download and install guide (`docs/INSTALL.md`) and a user guide
+      (`docs/USER_GUIDE.md`)
+- [x] Security review before going public: history scanned for secrets, `pip-audit` and `npm audit` clean, the API
+      refuses web pages and DNS rebinding, pack downloads stay on the open libraries' hosts
+- [x] Search probe of ~120 real engineering questions over every pack; every bug found fixed with a test
+      (ranges, inch threads, ASME flanges, O-rings, rings, keys, other languages, gear pairs, duplicates)
 - [x] Windows installer (electron-builder) with the Python engine and the language model included, built by
       GitHub Actions; a version tag makes a draft GitHub Release
 - [x] Electron end-to-end test in the repository (from the source on every push, the installed app on every build)
@@ -53,7 +58,8 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
 - [x] Adafruit CAD parts (MIT), ~490 boards, breakouts and displays
 - [ ] Licence filter in the filters panel
 - [ ] The newest KiCad models from GitLab, BOLTS collections, NopSCADlib vitamins (GPL-3), built by GitHub Actions
-- [ ] Data packs as release downloads once the repository is public; "Download" next to each pack in the app
+- [x] Data packs as release downloads (the Assets of each release)
+- [ ] "Download" next to each pack in the app
 - [ ] Live sources on the user's own key: Nexar/Octopart, DigiKey, Mouser (price, stock, datasheet)
 - [ ] Benchmark from 26 to ~100 questions; measured before and after every source
 

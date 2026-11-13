@@ -1,4 +1,4 @@
-# Tests on every push; the Windows installer on a version tag (v0.1.0) or by hand (Actions > Build > Run workflow).
+# Tests on every push; the Windows installer on a version tag (v0.2.0) or by hand (Actions > Build > Run workflow).
 # A tag also makes a draft GitHub Release with the installer: check it, then publish it on GitHub.
 name: Build
 

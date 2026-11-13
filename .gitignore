@@ -43,3 +43,6 @@ data/companies/*/uploads/
 /dist/
 /build/
 app/test-results/
+
+# the owner's own logo folder next to the code (the logos in git are in brand/)
+/Logo/

@@ -38,8 +38,10 @@ library with colleagues on your network (Settings → Accounts): you choose the 
 there is no default password. Accounts live only in the library on your own pc.
 
 ## Getting started (Windows)
-**With the installer:** download `Partsfinder-Setup-<version>.exe` from
-[Releases](https://github.com/Drilon1235/Partsfinder/releases) and run it. Everything is included: the app, the search
+Step by step: **[Download and install](docs/INSTALL.md)** and the **[User guide](docs/USER_GUIDE.md)**.
+
+**With the installer:** download `Partsfinder-Setup-<version>.exe` from the
+[latest release](https://github.com/Drilon1235/Partsfinder/releases/latest) and run it. Everything is included: the app, the search
 engine and its language model, so it works offline from the first start. Your library and settings live in
 `%APPDATA%\Partsfinder`; uninstalling keeps them. The installer is not code-signed yet, so Windows SmartScreen may
 ask you to confirm (*More info → Run anyway*).
@@ -59,7 +61,7 @@ This repository holds no CAD data. To start:
 - `scripts\windows\engineering.bat` builds a generic engineering library (about 400 parts: ISO bolts and nuts, bearings, profiles,
   motors, pulleys, ...) and imports it.
 - **Data packs** add thousands of openly licensed parts at once: ~6,000 standard parts (ISO, DIN, ASME), ~6,200
-  KiCad electronic components, ~2,500 parts of the FreeCAD library and ~490 Adafruit boards. Install a pack in the app
+  KiCad electronic components, ~2,500 parts of the FreeCAD library and ~490 Adafruit boards, as zips under the Assets of each release. Install a pack in the app
   (**Settings → Data packs → Install a data pack**) or with
   `backend\.venv\Scripts\python -m partsfinder.packs install PACK.zip`. Every part keeps its own licence (shown in
   Details) and links to its original file. Build the packs yourself with [scripts/datapacks](scripts/datapacks/README.md).
@@ -76,6 +78,8 @@ Only import data you are allowed to use. Partsfinder never downloads catalogues 
 ## Documentation
 | | |
 |---|---|
+| **[Download and install](docs/INSTALL.md)** | the installer, data packs, your own AI key, updating |
+| **[User guide](docs/USER_GUIDE.md)** | how to ask, read the answer, filters, compare, your own parts, sharing |
 | [Roadmap](docs/01_ROADMAP.md) | what is built and what comes next |
 | [Architecture](docs/02_ARCHITECTURE.md) | how the parts work together |
 | [Data model](docs/03_DATAMODEL.md) | what is stored per part |

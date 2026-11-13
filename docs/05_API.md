@@ -273,7 +273,7 @@ Removes every part of that library whose main file lies in that folder (the fold
 
 ## `GET /health`
 ```json
-{"status": "ok", "version": "0.1.0", "parts": 319, "embedder": "intfloat/multilingual-e5-small",
+{"status": "ok", "version": "0.2.0", "parts": 319, "embedder": "intfloat/multilingual-e5-small",
  "ai_available": true, "ai_model": "claude-haiku-5-5", "ai_note": null,
  "ai_spent_usd": 0.0123}
 ```
