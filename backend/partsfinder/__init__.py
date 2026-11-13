@@ -1,3 +1,3 @@
-"""Partsfinder: find existing CAD parts in plain language. By DZ IT Services, AGPL-3.0."""
+"""Partsfinder: find existing CAD parts in plain language. By DZ IT Services, MIT licence."""
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

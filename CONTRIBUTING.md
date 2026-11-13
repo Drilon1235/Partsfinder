@@ -27,6 +27,6 @@ The tests use simple embeddings and never call an AI, so they run offline and co
 - One subject per pull request, with a short description of what changes for the user.
 - Keep functions small and code readable; follow the style of the file you change.
 - By opening a pull request you agree that your contribution is licensed under the
-  [GNU AGPL-3.0](LICENSE), like the rest of the code.
+  [MIT licence](LICENSE), like the rest of the code.
 - The names and logos of Partsfinder and DZ IT Services (`brand/`) are not part of the open-source licence;
   please do not change them in a pull request.

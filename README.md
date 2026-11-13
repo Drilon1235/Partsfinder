@@ -109,8 +109,8 @@ see [packaging/README.md](packaging/README.md) to build it yourself.
 See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately: [SECURITY.md](SECURITY.md).
 
 ## Licence
-Partsfinder is free software under the [GNU Affero General Public License v3.0](LICENSE). If you run a changed version
-for others over a network, you must offer them its source code.
+Partsfinder is free and open source under the [MIT licence](LICENSE): use it, change it, share it, build it into
+your own products, commercially or not. Only keep the copyright notice.
 
 The names and logos of Partsfinder and DZ IT Services (the `brand/` folder) are not covered by that licence; forks use
 their own name and logo. Third-party material and its licences: [NOTICE](NOTICE).

@@ -74,7 +74,7 @@ class `dz-auto-dark`); the website is light.
 
 ## Licence
 The DZ IT Services name, the DZ logo and the Partsfinder and Stepix names and marks are
-trademarks of DZ IT Services. **All rights reserved.** They are not covered by the AGPL-3.0
+trademarks of DZ IT Services. **All rights reserved.** They are not covered by the MIT
 licence of the source code. Forks must use their own name and logo. The fonts in `fonts/`
 are under the SIL Open Font License 1.1 (see the `OFL-*.txt` files).
 

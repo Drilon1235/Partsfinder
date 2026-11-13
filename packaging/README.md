@@ -8,7 +8,9 @@ GitHub Actions builds the installer ([../.github/workflows/build.yml](../.github
     data pack zips as assets), it adds the tested installer, writes its SHA-256 where the notes say
     `<!-- installer -->`, and **publishes** the release; `download-link.yml` then adds the same installer as
     `Partsfinder-Setup.exe`, so the README button (`releases/latest/download/Partsfinder-Setup.exe`) always works;
-  - otherwise it makes a new draft release with generated notes; check it, then publish it on GitHub.
+  - otherwise it makes the release itself, with the notes of `.github/release-notes.md`, the installer and the data
+    packs of the previous release, and publishes it. A new version is then only: raise `version` in
+    `app/package.json`, commit, and push a tag `v<version>`.
 
 ## Build it yourself (Windows, from the repository folder)
 ```

@@ -2325,7 +2325,7 @@ async function openSettings(focusAbout = false) {
     el('p', { text: 'Find an existing CAD part before you draw a new one.' }),
     el('p', { class: 'about-by' }, el('img', { src: 'img/dz-mark-white.svg', alt: '', height: '18' }),
       el('span', {}, 'Made by ', el('a', { href: 'https://dzitservices.be', target: '_blank', rel: 'noopener', text: 'DZ IT Services' }))),
-    el('p', { class: 'panel-note' }, 'Open source under the GNU AGPL-3.0. Source code: ',
+    el('p', { class: 'panel-note' }, 'Free and open source under the MIT licence. Source code: ',
       el('a', { href: GITHUB, target: '_blank', rel: 'noopener', text: 'github.com/Drilon1235/Partsfinder' }), '.'),
     el('p', { class: 'panel-note', text: 'The names and logos of Partsfinder and DZ IT Services are not covered by that licence.' }));
   settingsDlg.replaceChildren(panelHead('settings-title', 'Settings', 'Partsfinder', () => settingsDlg.close()),

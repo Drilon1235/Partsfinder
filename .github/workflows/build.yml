@@ -108,18 +108,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # A draft release the maintainer prepared (notes, data packs) gets the tested installer and is published;
-          # otherwise a new draft with generated notes is made.
+          # A draft release the maintainer prepared (notes, data packs) gets the tested installer and is published.
+          # Otherwise the release is made here: the notes of .github/release-notes.md, the installer, and the data
+          # packs of the previous release (they only change when a pack is rebuilt), and it is published.
           $tag = "${{ github.ref_name }}"
           $exe = Get-ChildItem dist/app/Partsfinder-Setup-*.exe | Select-Object -First 1
           $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          $row = "| $($exe.Name) / Partsfinder-Setup.exe | ``$sha`` |"
+          Copy-Item $exe.FullName Partsfinder-Setup.exe
           $tags = gh release list --limit 100 --json tagName --jq '.[].tagName'
           if ($tags -contains $tag) {
-            gh release upload $tag $exe.FullName --clobber
+            gh release upload $tag $exe.FullName Partsfinder-Setup.exe --clobber
             $body = (gh release view $tag --json body --jq .body) -join "`n"
-            $body = $body.Replace('<!-- installer -->', "| $($exe.Name) | ``$sha`` |")
-            Set-Content -Path notes.md -Value $body -Encoding utf8
-            gh release edit $tag --notes-file notes.md --draft=false --latest
           } else {
-            gh release create $tag $exe.FullName --draft --generate-notes --title "Partsfinder $tag"
+            $previous = gh release list --limit 20 --json tagName --jq '.[].tagName' | Where-Object { $_ -ne $tag } | Select-Object -First 1
+            New-Item -ItemType Directory packs | Out-Null
+            if ($previous) { gh release download $previous -p 'partsfinder-pack-*.zip' -D packs }
+            $body = Get-Content .github/release-notes.md -Raw
+            gh release create $tag $exe.FullName Partsfinder-Setup.exe (Get-ChildItem packs/*.zip | ForEach-Object FullName) --draft --title "Partsfinder $tag" --notes "..."
           }
+          $body = $body -replace '(?m)^.*<!-- installer -->.*$', $row
+          Set-Content -Path notes.md -Value $body -Encoding utf8
+          gh release edit $tag --notes-file notes.md --draft=false --latest

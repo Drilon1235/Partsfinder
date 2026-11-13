@@ -21,7 +21,7 @@ Or go to the **[latest release](https://github.com/Drilon1235/Partsfinder/releas
 1. Double-click the downloaded `Partsfinder-Setup.exe`.
 2. **Windows SmartScreen** may say *"Windows protected your PC"*, because the installer is not code-signed yet.
    Click **More info → Run anyway**. (Only do this for an installer you downloaded from the release page above.)
-3. Accept the licence (GNU AGPL v3), choose where to install it (the default is fine) and click **Install**.
+3. Accept the licence (MIT), choose where to install it (the default is fine) and click **Install**.
 4. Open **Partsfinder** from the Start menu or the desktop shortcut.
 
 The first start takes a few seconds longer while the search engine loads its language model. Everything it needs is

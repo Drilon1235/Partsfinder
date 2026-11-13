@@ -1,10 +1,10 @@
 {
   "name": "partsfinder",
   "productName": "Partsfinder",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "author": "DZ IT Services <info@dzitservices.be>",
   "homepage": "https://github.com/Drilon1235/Partsfinder",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Partsfinder by DZ IT Services: find existing CAD parts in plain language.",
   "main": "main.js",
   "private": true,

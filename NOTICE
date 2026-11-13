@@ -1,13 +1,12 @@
 Partsfinder
 Copyright (C) 2026 DZ IT Services (https://dzitservices.be)
 
-Partsfinder is free software: you can redistribute it and/or modify it under the terms of the
-GNU Affero General Public License version 3 (see LICENSE).
+Partsfinder is free and open source under the MIT licence (see LICENSE).
 
 Trademarks
 ----------
 The names "Partsfinder", "Stepix" and "DZ IT Services" and their logos (the brand/ folder and the icons in
-app/build/ and app/renderer/img/) are trademarks of DZ IT Services. They are not licensed under the AGPL;
+app/build/ and app/renderer/img/) are trademarks of DZ IT Services. They are not licensed under the MIT licence;
 all rights reserved. A fork must use its own name and logo.
 
 Third-party material in this repository

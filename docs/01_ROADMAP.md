@@ -1,6 +1,6 @@
 # Roadmap
 
-Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off what is done: `- [x]`.
+Partsfinder is an open-source (MIT) desktop app by DZ IT Services. Tick off what is done: `- [x]`.
 
 ## Built so far
 - [x] Data model with company separation in every query; categories and sectors (`taxonomy.yaml`)
@@ -33,7 +33,7 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
 - [x] The app in the DZ brand: navy theme, Inter and Space Grotesk, Partsfinder icon, About in Settings
 - [x] In-app confirmation instead of the browser's confirm box; the question stays in the search bar; an honest
       message for parts nobody could judge
-- [x] `LICENSE` (AGPL-3.0), README, `CONTRIBUTING.md`, `SECURITY.md`, `NOTICE`
+- [x] `LICENSE` (MIT; AGPL-3.0 until v0.2.0), README, `CONTRIBUTING.md`, `SECURITY.md`, `NOTICE`
 - [x] Secret scan of the tree; new repository with a clean history
 - [x] Make the repository public (v0.2.0), with a download and install guide (`docs/INSTALL.md`) and a user guide
       (`docs/USER_GUIDE.md`)

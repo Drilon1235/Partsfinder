@@ -162,7 +162,7 @@ async function main() {
     await page.waitForSelector('#settings[open] #about', { timeout: 10000 });
     const text = await page.textContent('#about');
     const version = require(path.join(APP_DIR, 'package.json')).version;
-    if (!text.includes(`Version ${version}`) || !text.includes('AGPL')) throw new Error(text);
+    if (!text.includes(`Version ${version}`) || !text.includes('MIT licence')) throw new Error(text);
   });
 
   await step('settings: the data packs section and the optional accounts', async () => {

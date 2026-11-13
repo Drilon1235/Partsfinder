@@ -4,7 +4,7 @@
 | # | Question | Decision |
 |---|---|---|
 | 1 | Name and owner | **Partsfinder**, a product of DZ IT Services (dzitservices.be) |
-| 2 | Licence | Code **AGPL-3.0**; the names and logos of Partsfinder and DZ IT Services (`brand/`) are not covered by it |
+| 2 | Licence | Code **MIT** (was AGPL-3.0 until 13 Nov 2026: everyone may use, change and sell it, only the copyright notice stays); the names and logos of Partsfinder and DZ IT Services (`brand/`) are not covered by it |
 | 3 | Form | Desktop app (Electron + local Python search engine), per user or per company pc |
 | 4 | AI | Bring your own key: every user enters their own Anthropic API key; everything works without AI |
 | 5 | Data | Only openly licensed sources: no scraping, no copied catalogues of manufacturers or distributors |
