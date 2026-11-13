@@ -251,3 +251,45 @@ def test_api_designation_in_the_name(client):
     assert d["status"] == "found"
     assert d["results"][0]["id"] == "ipe-200" and d["results"][0]["verdict"] == "fits"
     assert all(r["verdict"] != "fits" for r in d["results"][1:])
+
+
+# ---- a web page in a browser on this pc cannot reach the library ---------------------------------------------------
+def test_dns_rebinding_and_web_pages_are_refused(client):
+    assert client.get("/health").status_code == 200
+    assert client.get("/health", headers={"host": "127.0.0.1:8731"}).status_code == 200
+    assert client.get("/health", headers={"host": "localhost:8731"}).status_code == 200
+    r = client.get("/health", headers={"host": "evil.example:8731"})           # DNS rebinding
+    assert r.status_code == 403 and "only answers to this computer" in r.json()["detail"]
+    r = client.post("/search", json={"query": "IPE 200"}, headers={"origin": "https://evil.example"})
+    assert r.status_code == 403
+    r = client.post("/settings/ai", json={"api_key": "sk-ant-x"}, headers={"origin": "null"})
+    assert r.status_code == 403
+    # a browser on /docs of this server itself: same origin
+    r = client.post("/search", json={"query": "IPE 200", "use_ai": False}, headers={"origin": "http://testserver"})
+    assert r.status_code == 200
+
+
+def test_a_network_server_answers_to_its_own_name(client):
+    client.app.state.loopback_only = False                                        # --host 0.0.0.0 with accounts
+    assert client.get("/health", headers={"host": "parts.example.local:8000"}).status_code == 200
+    r = client.get("/health", headers={"host": "parts.example.local:8000", "origin": "https://evil.example"})
+    assert r.status_code == 403
+
+
+def test_pack_files_never_leave_the_open_libraries(tmp_path):
+    import urllib.request
+    import zipfile
+
+    from partsfinder import packs, remote
+    handler = remote._SameHostsOnly()
+    req = urllib.request.Request("https://raw.githubusercontent.com/a/b/c.step")
+    with pytest.raises(remote.RemoteFileError):
+        handler.redirect_request(req, None, 302, "Found", {}, "https://evil.example/c.step")
+    with pytest.raises(remote.RemoteFileError):
+        handler.redirect_request(req, None, 302, "Found", {}, "http://raw.githubusercontent.com/a/b/c.step")
+    for bad in ("../outside.txt", "files\\\\..\\\\..\\\\outside.txt", "/etc/x", "C:/x"):
+        z = tmp_path / "bad.zip"
+        with zipfile.ZipFile(z, "w") as f:
+            f.writestr(bad, "x")
+        with pytest.raises(packs.PackError):
+            packs._extract(z, tmp_path / "out")

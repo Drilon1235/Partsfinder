@@ -58,12 +58,19 @@ def read_info(folder: Path) -> dict[str, Any]:
     return info
 
 
+MAX_UNPACKED = 20 * 1024 ** 3                         # 20 GB: far above any pack, far below a zip bomb
+
+
 def _extract(zip_path: Path, target: Path) -> None:
     with zipfile.ZipFile(zip_path) as z:
+        total = 0
         for member in z.infolist():
             name = member.filename
-            if name.startswith(("/", "\\")) or ".." in Path(name).parts or ":" in name:
+            if (name.startswith(("/", "\\")) or ".." in Path(name.replace("\\", "/")).parts or ":" in name):
                 raise PackError(f"Unsafe path in the pack: {name}")
+            total += member.file_size
+        if total > MAX_UNPACKED:
+            raise PackError("The pack unpacks to more than 20 GB; it is not a Partsfinder data pack.")
         z.extractall(target)
 
 

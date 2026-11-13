@@ -1,5 +1,5 @@
 # Partsfinder - Python packages
-# Install: see scripts/setup_windows.ps1 of scripts/setup_mac.sh
+# Install: see scripts/setup_windows.ps1 or scripts/setup_mac.sh
 
 # Base
 pydantic>=2.7

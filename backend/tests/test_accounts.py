@@ -55,7 +55,7 @@ def bearer(token):
 
 
 def admin(c) -> str:
-    r = c.post("/setup", json={"username": "DrilonTest", "password": PASSWORD})
+    r = c.post("/setup", json={"username": "owner_test", "password": PASSWORD})
     assert r.status_code == 200, r.text
     return r.json()["token"]
 
@@ -79,7 +79,7 @@ def test_without_accounts_nothing_changes_and_the_first_admin_is_made_on_this_pc
     token = admin(c)
     assert c.post("/setup", json={"username": "other", "password": PASSWORD}).status_code == 409
     me = c.get("/me", headers=bearer(token)).json()
-    assert me["role"] == "admin" and me["username"] == "DrilonTest"
+    assert me["role"] == "admin" and me["username"] == "owner_test"
     h = c.get("/health").json()
     assert h["accounts"] is True and h["setup_needed"] is False
     # only a hash is stored; never the password or the token
@@ -133,21 +133,21 @@ def test_admin_manages_people_and_a_change_signs_them_out(lib):
     adm = admin(c)
     token = company_user(c, adm, groups=["nuclear"])
     users = c.get("/users", headers=bearer(adm)).json()
-    assert {u["username"] for u in users} == {"DrilonTest", "anna"} and "password_hash" not in str(users)
+    assert {u["username"] for u in users} == {"owner_test", "anna"} and "password_hash" not in str(users)
     assert c.patch("/users/anna", json={"password": "a new one 22"}, headers=bearer(adm)).status_code == 200
     assert c.get("/me", headers=bearer(token)).status_code == 401           # signed out everywhere
     token = c.post("/login", json={"username": "anna", "password": "a new one 22"}).json()["token"]
     assert c.patch("/users/anna", json={"disabled": True}, headers=bearer(adm)).status_code == 200
     assert c.get("/me", headers=bearer(token)).status_code == 401
     assert c.post("/login", json={"username": "anna", "password": "a new one 22"}).status_code == 401
-    assert c.delete("/users/DrilonTest", headers=bearer(adm)).status_code == 400       # the last admin stays
+    assert c.delete("/users/owner_test", headers=bearer(adm)).status_code == 400       # the last admin stays
     assert c.post("/users", json={"username": "bad name!", "password": PASSWORD, "company_id": "acme"},
                   headers=bearer(adm)).status_code == 400
     assert c.post("/users", json={"username": "shorty", "password": "short", "company_id": "acme"},
                   headers=bearer(adm)).status_code == 400
     assert c.delete("/users/anna", headers=bearer(adm)).status_code == 200
     actors = {r["actor"] for r in c.get("/audit", headers=bearer(adm), params={"company_id": "acme"}).json()}
-    assert "user:DrilonTest" in actors                                       # the log tells people apart
+    assert "user:owner_test" in actors                                       # the log tells people apart
     assert c.post("/logout", headers=bearer(adm)).status_code == 200
     assert c.get("/users", headers=bearer(adm)).status_code == 401
 
@@ -430,14 +430,14 @@ def test_on_this_pc_the_admin_password_can_be_reset(lib):
     old = admin(c)
     company_user(c, old)
     for _ in range(5):                                         # locked out by wrong tries
-        c.post("/login", json={"username": "DrilonTest", "password": "wrong one!"})
-    assert c.get("/setup/admins").json() == {"admins": [{"username": "DrilonTest", "disabled": False}]}
-    r = c.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"})
+        c.post("/login", json={"username": "owner_test", "password": "wrong one!"})
+    assert c.get("/setup/admins").json() == {"admins": [{"username": "owner_test", "disabled": False}]}
+    r = c.post("/setup/reset", json={"username": "owner_test", "password": "a new password 2"})
     assert r.status_code == 200 and r.json()["me"]["role"] == "admin"
     assert c.get("/me", headers=bearer(r.json()["token"])).json()["role"] == "admin"
     assert c.get("/me", headers=bearer(old)).status_code == 401              # the old session is gone
-    assert c.post("/login", json={"username": "DrilonTest", "password": "a new password 2"}).status_code == 200
-    assert c.post("/login", json={"username": "DrilonTest", "password": PASSWORD}).status_code == 401
+    assert c.post("/login", json={"username": "owner_test", "password": "a new password 2"}).status_code == 200
+    assert c.post("/login", json={"username": "owner_test", "password": PASSWORD}).status_code == 401
     assert "a new password 2" not in "\n".join(conn.iterdump())
 
 
@@ -448,10 +448,10 @@ def test_the_reset_is_only_for_admins_on_this_pc(lib):
     anna = company_user(c, token)
     assert c.post("/setup/reset", json={"username": "anna", "password": "a new password 2"}).status_code == 404
     assert c.post("/setup/reset", json={"username": "nobody", "password": "a new password 2"}).status_code == 404
-    assert c.post("/setup/reset", json={"username": "DrilonTest", "password": "short"}).status_code == 400
-    assert c.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"},
+    assert c.post("/setup/reset", json={"username": "owner_test", "password": "short"}).status_code == 400
+    assert c.post("/setup/reset", json={"username": "owner_test", "password": "a new password 2"},
                   headers=bearer(anna)).status_code == 403                     # a company account
     assert c.get("/setup/admins", headers=bearer(anna)).status_code == 403
     far = TestClient(app, client=("10.0.0.7", 50000))
-    assert far.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"}).status_code == 403
+    assert far.post("/setup/reset", json={"username": "owner_test", "password": "a new password 2"}).status_code == 403
     assert far.get("/setup/admins").status_code == 403

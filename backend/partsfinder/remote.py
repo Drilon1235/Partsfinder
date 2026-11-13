@@ -41,7 +41,18 @@ def cached_path(url: str, cache_dir: Path) -> Path:
     return cache_dir / key / file_name(url)
 
 
-def fetch(url: str, cache_dir: Path, opener=urllib.request.urlopen) -> Path:
+class _SameHostsOnly(urllib.request.HTTPRedirectHandler):
+    """A redirect is followed only to another allowed address (https, one of ALLOWED_HOSTS)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001 - urllib's signature
+        check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_open = urllib.request.build_opener(_SameHostsOnly).open
+
+
+def fetch(url: str, cache_dir: Path, opener=_open) -> Path:
     """The local copy of the file at url, downloading it once."""
     check_url(url)
     target = cached_path(url, cache_dir)

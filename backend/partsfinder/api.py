@@ -450,6 +450,26 @@ def create_app(
                 return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
         return await call_next(request)
 
+    app.state.loopback_only = True                      # main() clears it for --host on a network address
+
+    @app.middleware("http")
+    async def only_this_app(request: Request, call_next):
+        """A web page open in a browser on this pc must not reach the library. Two ways it could try:
+        - DNS rebinding: its own domain pointed at 127.0.0.1, so the browser sends that domain as Host. On this
+          pc the server answers only to 127.0.0.1, localhost and ::1.
+        - a request sent from the page to http://127.0.0.1 (its Origin is the page). The app and other programs
+          send no Origin; a browser at /docs sends its own address, which is the same as Host."""
+        host = request.headers.get("host", "")
+        name = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]")[0] + "]"
+        testing = request.client is not None and request.client.host == "testclient" and name == "testserver"
+        if (app.state.loopback_only and name.lower() not in ("localhost", "[::1]") and not name.startswith("127.")
+                and not testing):
+            return JSONResponse({"detail": "This server only answers to this computer (127.0.0.1)."}, status_code=403)
+        origin = request.headers.get("origin")
+        if origin is not None and origin.split("://", 1)[-1].rstrip("/").lower() != host.lower():
+            return JSONResponse({"detail": "Requests from web pages are not accepted."}, status_code=403)
+        return await call_next(request)
+
     def company_for(request: Request, claimed: str | None) -> Scope | None:
         """Which company may this request use, and what of it? Without keys: what is asked for (and the
         restricted groups in PARTSFINDER_LOCAL_GROUPS). An AI client (header X-Partsfinder-AI: 1) never sees restricted
@@ -1566,6 +1586,7 @@ def main() -> int:
     print("Starting the Partsfinder API (loading the AI model, please wait)...")
     app = create_app(enable_ai=not args.no_ai)
     app.state.public_url = f"http://127.0.0.1:{args.port}"
+    app.state.loopback_only = is_local_host(args.host)
     app.state.engine.embedder.embed_query("warm up")      # load the model now, not at the first question
     print(health_line(app))
     print(f"Ready. Try it at http://{args.host}:{args.port}/docs  (Ctrl+C to stop)")
