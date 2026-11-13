@@ -1,6 +1,6 @@
 """HTTP API of Partsfinder (FastAPI). See docs/05_API.md.
 
-Start:     python -m partsfinder.api            (or double-click api.bat)
+Start:     python -m partsfinder.api            (or double-click scripts/windows/api.bat)
 Docs:      http://127.0.0.1:8000/docs           (automatic, to try things out)
 
 Endpoints:
@@ -55,7 +55,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from . import __version__
-from .ai import NO_KEY, AIError, FindResult, Judged, PartFinder, ai_label, make_finder, search_several, search_without_ai
+from .ai import (NO_KEY, AIError, FindResult, Judged, PartFinder, ai_label, answer_nothing, finish, make_finder,
+                 search_gear_pair, search_several, search_without_ai)
+from .query import prepare
 from . import auth
 from .access import AI_HEADER, Scope, as_ai, full, join_groups, scope_key, split_groups, valid_group
 from .config import PROJECT_DIR, Settings, get_settings
@@ -737,9 +739,19 @@ def create_app(
                 raise HTTPException(422, "Give a question, or at least one filter")
             return browse(body, fixed, request)
 
+        prepared = prepare(body.query)
+        query = prepared.text                           # Dutch/German/French part names read in English
+
         def compute() -> tuple[dict[str, Any], bool]:
             start = time.perf_counter()
             keep = True
+            if prepared.empty:                          # "???", "x30": nothing to search for
+                return {**result_payload(answer_nothing(prepared), body.company_id), "seconds": 0.0}, True
+            pair = search_gear_pair(engine, query, body.company_id, body.limit, filters=fixed)
+            if pair is not None:                        # "a spur gear pair for 3:1": two existing gears
+                out = result_payload(finish(pair, prepared), body.company_id)
+                out["seconds"] = round(time.perf_counter() - start, 3)
+                return out, True
             ai_allowed = ai_sees_all(body.company_id)
             use_ai = app.state.finder is not None and body.use_ai and ai_allowed
             failed: list[str] = []
@@ -752,21 +764,21 @@ def create_app(
                     failed.append(str(exc))
                     return None
 
-            several = search_several(engine, body.query, body.company_id, body.limit,
+            several = search_several(engine, query, body.company_id, body.limit,
                                      reason="" if use_ai else (app.state.ai_note or "") if app.state.finder is None
                                      else "switched off in the request" if not body.use_ai else AI_OFF,
                                      filters=fixed, judge=judge if use_ai else None)
             if several is not None:                     # "an M8 bolt and an Arduino": answered per part
-                out = result_payload(several, body.company_id)
+                out = result_payload(finish(several, prepared), body.company_id)
                 out["seconds"] = round(time.perf_counter() - start, 3)
                 return out, not failed
             if use_ai:                                  # searching under the lock, Claude outside it
                 try:
                     # Claude only ever gets what an outside AI may see
-                    result = app.state.finder.find(body.query, as_ai(body.company_id), body.limit, fixed_filters=fixed)
+                    result = app.state.finder.find(query, as_ai(body.company_id), body.limit, fixed_filters=fixed)
                 except AIError as exc:
                     keep = False                        # the AI may work again on the next try
-                    result = search_without_ai(engine, body.query, body.company_id, body.limit,
+                    result = search_without_ai(engine, query, body.company_id, body.limit,
                                                reason=str(exc), filters=fixed)
             else:
                 if app.state.finder is None:
@@ -775,9 +787,9 @@ def create_app(
                     reason = "switched off in the request"
                 else:
                     reason = AI_OFF                     # restricted or confidential parts: code only
-                result = search_without_ai(engine, body.query, body.company_id, body.limit,
+                result = search_without_ai(engine, query, body.company_id, body.limit,
                                            reason=reason, filters=fixed)
-            out = result_payload(result, body.company_id)
+            out = result_payload(finish(result, prepared), body.company_id)
             out["seconds"] = round(time.perf_counter() - start, 3)
             return out, keep
 
@@ -808,7 +820,9 @@ def create_app(
         out = []
         for item in body.searches:
             fixed = item.filters.to_filters() if item.filters else None
-            result = search_without_ai(engine, item.query, company_id, item.limit, filters=fixed)
+            prepared = prepare(item.query)
+            result = finish(answer_nothing(prepared) if prepared.empty else
+                            search_without_ai(engine, prepared.text, company_id, item.limit, filters=fixed), prepared)
             out.append({"query": item.query, **result_payload(result, company_id)})
         return {"searches": out}
 
@@ -846,7 +860,7 @@ def create_app(
             result = app.state.finder.find(query, as_ai(company_id), body.limit, fixed_filters=fixed)
         except AIError as exc:
             result = search_without_ai(engine, query, company_id, body.limit, reason=str(exc), filters=fixed)
-        return {"identified": seen, "query": query, **result_payload(result, company_id)}
+        return {"identified": seen, "query": query, **result_payload(finish(result, prepare(query)), company_id)}
 
     @app.get("/parts/{part_id}")
     def get_part(request: Request, part_id: str, company_id: str | None = None) -> dict[str, Any]:

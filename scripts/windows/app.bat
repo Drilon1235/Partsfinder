@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0app"
+cd /d "%~dp0..\..\app"
 title Partsfinder
 
 where npm >nul 2>nul

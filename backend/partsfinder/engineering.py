@@ -116,6 +116,13 @@ def mass(part: Any) -> tuple[float, bool] | None:
     return (est, True) if est is not None else None
 
 
+# DIN 6885-1 parallel keys: shaft diameter (mm) -> key width b x height h (as in bd_warehouse.shaft_key)
+KEY_SECTION = {**{d: (2, 2) for d in (6, 7, 8)}, **{d: (3, 3) for d in (9, 10)}, **{d: (4, 4) for d in (11, 12)},
+               **{d: (5, 5) for d in range(13, 18)}, **{d: (6, 6) for d in range(18, 23)},
+               **{d: (8, 7) for d in range(23, 31)}, **{d: (10, 8) for d in range(31, 39)},
+               **{d: (12, 8) for d in range(39, 45)}, **{d: (14, 9) for d in range(45, 51)}}
+
+
 def value(part: Any, key: str) -> Any:
     """One engineering value of the part (own data first, then what follows from a standard), or None.
     Used to check a requirement such as "at least 800 MPa" or "holds 50 kg"."""

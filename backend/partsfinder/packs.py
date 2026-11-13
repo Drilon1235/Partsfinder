@@ -128,11 +128,17 @@ def _part(row: dict[str, Any], folder: Path, info: dict[str, Any]) -> PartCreate
     return PartCreate(**data)
 
 
+_COMPARED = ("name", "description", "category_path", "sectors", "tags", "material", "color", "standards", "properties",
+             "source", "source_ref", "license", "thumbnail_path", "checksum", "kind", "volume_mm3")
+
+
 def _same(old, new: PartCreate) -> bool:
-    return (old.checksum == new.checksum and old.name == new.name and old.description == new.description
-            and old.category_path == new.category_path and old.license == new.license
-            and old.thumbnail_path == new.thumbnail_path and old.tags == new.tags
-            and [f.path for f in old.files] == [f.path for f in new.files])
+    """Nothing to update: every field the pack sets is already the same in the library."""
+    if any(getattr(old, f, None) != getattr(new, f, None) for f in _COMPARED):
+        return False
+    if [round(x, 3) for x in (old.bbox_mm or ())] != [round(x, 3) for x in (new.bbox_mm or ())]:
+        return False
+    return [(f.format, f.path) for f in old.files] == [(f.format, f.path) for f in new.files]
 
 
 def install(src: Path, repo, embedder, data_dir: Path, log: Callable[[str], None] = print,

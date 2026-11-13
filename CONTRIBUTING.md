@@ -12,7 +12,7 @@ Thanks for helping. Partsfinder is maintained by DZ IT Services; issues and pull
 - English everywhere: code, comments, UI text, docs and data.
 
 ## Set up
-Windows: `setup_windows.bat`, then `app.bat`. Mac: `bash scripts/setup_mac.sh`, then `cd app && npm install && npm start`.
+Windows: `scripts\windows\setup_windows.bat`, then `scripts\windows\app.bat`. Mac: `bash scripts/setup_mac.sh`, then `cd app && npm install && npm start`.
 
 ## Check your change
 ```

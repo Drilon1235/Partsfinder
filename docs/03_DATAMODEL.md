@@ -63,7 +63,10 @@ The same values can be filtered on (`filters.engineering`, the Filters panel): c
 when the value follows from a standard; a part that states no value never passes. Nothing is stored for it.
 | `profile_size`, `slot_width_mm` | `"40x40"`, `8` | T-slot profiles |
 | `piston_diameter_mm`, `stroke_mm`, `port_thread` | `50`, `100`, `"G1/4"` | pneumatic cylinders |
-| `dn`, `pn` | `50`, `16` | flanges, piping |
+| `dn`, `pn` | `50`, `16` | flanges, piping (EN 1092-1) |
+| `nps`, `pressure_class` | `"1 1/2"`, `300` | ASME B16.5 flanges (NPS as written: `"2"`, `"3/4"`, `"1 1/2"`) |
+| `chord_thickness_mm` (with `inner_diameter_mm`, `outer_diameter_mm`) | `2.62` | O-rings (cross section) |
+| `width_mm`, `height_mm` (with `shaft_diameter_mm`, `length_mm`) | `8`, `7` | parallel keys (b x h x l, DIN 6885); without them the section follows from the shaft diameter |
 | `rail_size` | `20` | linear guides |
 | `tolerance` | `"h6"`, `"m6"` | shafts, dowel pins |
 | `diameter_mm` | `6` | dowel pins |

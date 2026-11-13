@@ -46,9 +46,9 @@ ask you to confirm (*More info → Run anyway*).
 
 **From the source:**
 1. Download this repository (green **Code** button → *Download ZIP*, or `git clone`).
-2. Double-click `setup_windows.bat`. It installs Python 3.12 if needed, creates a virtual environment, installs the
+2. Double-click `scripts\windows\setup_windows.bat`. It installs Python 3.12 if needed, creates a virtual environment, installs the
    packages and runs the tests (about 10 minutes the first time). The result is in `backend/setup_log.txt`.
-3. Double-click `app.bat`. The first time it installs Node.js and the app's packages, then opens Partsfinder.
+3. Double-click `scripts\windows\app.bat`. The first time it installs Node.js and the app's packages, then opens Partsfinder.
 
 Then, optional: open **Settings** (gear icon) and add your own Anthropic API key.
 
@@ -56,7 +56,7 @@ On a Mac: `bash scripts/setup_mac.sh`, then `cd app && npm install && npm start`
 
 ### Filling the library
 This repository holds no CAD data. To start:
-- `engineering.bat` builds a generic engineering library (about 400 parts: ISO bolts and nuts, bearings, profiles,
+- `scripts\windows\engineering.bat` builds a generic engineering library (about 400 parts: ISO bolts and nuts, bearings, profiles,
   motors, pulleys, ...) and imports it.
 - **Data packs** add thousands of openly licensed parts at once: ~6,000 standard parts (ISO, DIN, ASME), ~6,200
   KiCad electronic components, ~2,500 parts of the FreeCAD library and ~490 Adafruit boards. Install a pack in the app
@@ -70,7 +70,7 @@ This repository holds no CAD data. To start:
 Only import data you are allowed to use. Partsfinder never downloads catalogues from manufacturers or distributors.
 
 ## The API
-`api.bat` starts the search engine at `http://127.0.0.1:8000`; `/docs` lets you try every call. Other programs
+`scripts\windows\api.bat` starts the search engine at `http://127.0.0.1:8000`; `/docs` lets you try every call. Other programs
 (and other AIs) can search the library through it. See [docs/05_API.md](docs/05_API.md).
 
 ## Documentation

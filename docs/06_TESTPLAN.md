@@ -1,7 +1,7 @@
 # Test plan
 
 ## Automatic tests
-`python -m pytest` in `backend/` (also part of `check.bat`): 313 tests covering the data model, company separation,
+`python -m pytest` in `backend/` (also part of `scripts\windows\check.bat`): 313 tests covering the data model, company separation,
 import, folder rules, accounts, the search engine and its checks, the AI layer (with a fake Claude), the API and the
 test queries themselves. The tests use simple embeddings (`HashingEmbedder`) and never call an AI.
 
@@ -41,7 +41,7 @@ After the English translation: offline embeddings on the 319 test models give 10
 | Speed per query (300 parts) | < 5 s | 4 ms | |
 
 ## Result with AI (Claude Haiku 5.5)
-`ai_test.bat` (needs `ANTHROPIC_API_KEY` in `backend/.env`): the 50 test queries + 2 extra (hex bolt M30x200,
+`scripts\windows\ai_test.bat` (needs `ANTHROPIC_API_KEY` in `backend/.env`): the 50 test queries + 2 extra (hex bolt M30x200,
 garden chair in purple).
 - **50/52 correct (96%), 0 leaks**, 2 requests to Claude per query.
 - Miss 1: "hex nut M8": the M8 nut was among the candidates but the AI overlooked it. Fix: every candidate carries `query_words_matched` (which words of the question literally occur in it, also from properties like `thread: M8`), plus the instruction to check dimensions against the candidate itself.
@@ -72,10 +72,10 @@ The first measurement at 100,000 parts was 8.3 s on average (26 s slowest). Caus
 Tested: subfolders, spaces and capitals in names (`.STEP`, `.stp`), broken and empty files (reported cleanly, the rest continues), loose native files (stored, not measured), text files (skipped).
 
 ## Running
-- `check.bat`: everything (tests, test data, import, evaluation)
+- `scripts\windows\check.bat`: everything (tests, test data, import, evaluation)
 - `backend\.venv\Scripts\python eval_search.py --verbose`: evaluation with all questions shown
 - `backend\.venv\Scripts\python ..\scripts\scale_test.py`: scale test
-- `ai_test.bat`: the same questions with the AI as judge; one question: `ai_test.bat --only "hex nut"`
+- `scripts\windows\ai_test.bat`: the same questions with the AI as judge; one question: `scripts\windows\ai_test.bat --only "hex nut"`
 
 ## Engineering evaluation (`backend/eval_engineering.py`)
 48 questions in `backend/tests/queries_engineering.yaml`, phrased as a mechanical engineer asks
@@ -83,3 +83,10 @@ Tested: subfolders, spaces and capitals in names (`.STEP`, `.stp`), broken and e
 measures: exact part at position 1, correct status (found / partial / none), the deviating spec reported
 for questions the library cannot fully meet, and **false fits** (a part marked `fits` that violates a spec
 of the question; goal 0). Unit tests: `backend/tests/test_engineering.py`.
+
+## Search probe (`scripts/search_probe.py`)
+About 120 real questions (designations, inch and metric sizes, other languages, electronics packages, gear pairs,
+long sentences, junk input such as `???` or an SQL string) run through `/search` without AI against a full library
+(all data packs), written to a readable report with every result and its spec checks. For finding bugs and comparing
+before/after a change: `backend/.venv/bin/python scripts/search_probe.py --db <copy of a library> --out report.txt`.
+It only reads. The bugs it found are fixed with tests in `backend/tests/test_search_quality.py`.

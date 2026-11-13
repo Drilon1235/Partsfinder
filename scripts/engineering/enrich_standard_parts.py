@@ -54,6 +54,11 @@ SYNONYMS = {  # what engineers call these parts, added as tags
     "ISO 7089": ["flat washer", "plain washer"],
 }
 WASHER_GRADES = (["200 HV", "300 HV", "A2", "A4"], "steel 200 HV / 300 HV or stainless A2 / A4")
+# DIN 6885-1 parallel keys: shaft diameter (mm) -> key width b x height h (as in bd_warehouse.shaft_key)
+KEY_SECTION = {**{d: (2, 2) for d in (6, 7, 8)}, **{d: (3, 3) for d in (9, 10)}, **{d: (4, 4) for d in (11, 12)},
+               **{d: (5, 5) for d in range(13, 18)}, **{d: (6, 6) for d in range(18, 23)},
+               **{d: (8, 7) for d in range(23, 31)}, **{d: (10, 8) for d in range(31, 39)},
+               **{d: (12, 8) for d in range(39, 45)}, **{d: (14, 9) for d in range(45, 51)}}
 BEARING_BY_DIMS = {(float(d), float(D), float(B)): code for code, (d, D, B) in BEARINGS.items()}
 
 
@@ -84,6 +89,18 @@ def enrich(meta: dict) -> bool:
     if cat.startswith("fasteners/") and props.get("thread") and stds:
         size = props["thread"] + (f"x{props['length_mm']:g}" if isinstance(props.get("length_mm"), (int, float)) else "")
         props.setdefault("designation", f"{stds[0]} {size}")
+    if cat == "fasteners/pin/key" and props.get("shaft_diameter_mm") in KEY_SECTION and props.get("length_mm"):
+        # keys are ordered as b x h x l ("8x7x40"), not by the shaft they are for
+        b, h = KEY_SECTION[props["shaft_diameter_mm"]]
+        size = f"{b}x{h}x{props['length_mm']:g}"
+        props.setdefault("width_mm", b)
+        props.setdefault("height_mm", h)
+        props.setdefault("designation", f"DIN 6885 A {size}")
+        if size not in tags:
+            tags.append(size)
+        if not meta["name"].startswith("Parallel key"):
+            meta["name"] = (f"Parallel key {size} mm DIN 6885 form {props.get('form', 'A')} "
+                            f"(shaft {props['shaft_diameter_mm']:g} mm)")
     if cat == "drivetrain/bearing/ball-bearing" and props.get("type") in ("open", "sealed"):
         key = (float(props.get("inner_diameter_mm", 0)), float(props.get("outer_diameter_mm", 0)),
                float(props.get("width_mm", 0)))

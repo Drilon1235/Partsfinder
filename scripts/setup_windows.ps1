@@ -1,5 +1,5 @@
 # Partsfinder - installation on Windows
-# Easiest: double-click setup_windows.bat in the project folder.
+# Easiest: double-click scripts\windows\setup_windows.bat in the project folder.
 # - installs Python 3.12 via winget if missing
 # - creates backend\.venv and installs all packages
 # - checks the environment and runs the tests
@@ -35,7 +35,7 @@ try {
         winget install -e --id Python.Python.3.12 --scope user --accept-package-agreements --accept-source-agreements
         $py = Find-Python
         if (-not $py) {
-            throw "Python does not seem to be installed. Close this window and double-click setup_windows.bat again."
+            throw "Python does not seem to be installed. Close this window and double-click scripts\windows\setup_windows.bat again."
         }
     }
     $pyExe = $py[0]

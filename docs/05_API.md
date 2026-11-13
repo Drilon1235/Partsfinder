@@ -2,7 +2,7 @@
 
 Other programs (a CAD tool, a script, another AI) search Partsfinder through this HTTP API; the app uses it too.
 
-Start: double-click `api.bat` (or `python -m partsfinder.api` in `backend/`).
+Start: double-click `scripts\windows\api.bat` (or `python -m partsfinder.api` in `backend/`).
 Base URL: `http://127.0.0.1:8000`. To try it out: **http://127.0.0.1:8000/docs** (automatic, clickable documentation).
 
 By default the server listens only on the local computer. **Without keys** it has no login: anyone who can reach the API can pick any `company_id` and import any folder on that computer with `/ingest`. The server therefore **refuses to start on a network address (`--host`) without keys**.
@@ -153,6 +153,15 @@ Read deterministically from the question (no AI needed), e.g.:
 | `shelf bracket that holds 50 kg` / `bracket max load 500 N` | `{"max_load_kg": 50}` / `{"max_load_kg": 51.0}` |
 | `bearing 6205 dynamic load rating 14 kN` / `static load rating 7 kN` | `{"designation": "6205", "load_rating_kn": 14}` / `{"static_load_rating_kn": 7}` |
 | `plate ISO 2768-m` | `{"tolerance": "ISO 2768-m"}` (a tolerance class, not a standard the part must name) |
+| `bolt M8 length between 25 and 40 mm` | `{"thread": "M8", "length_mm": {"min": 25, "max": 40}}` (a range; also module, teeth, bore, width, DN) |
+| `bearing 25 mm bore sealed, under 15 mm wide` | `{"bore_mm": 25, "seal": "sealed", "width_mm": {"max": 15}}` ("sealed" = 2RS/RS, "shielded" = 2Z/Z) |
+| `hex bolt M12 x 1.25 x 40` | `{"thread": "M12", "pitch_mm": 1.25, "length_mm": 40}` |
+| `1/4-20 x 1 socket head cap screw` / `#10-32 screw` | `{"thread": "1/4-20", "length_mm": 25.4}` / `{"thread": "#10-32"}` (inches converted) |
+| `weld neck flange 2 inch class 300` / `NPS 1 1/2 150#` | `{"nps": "2", "pressure_class": 300}` / `{"nps": "1 1/2", "pressure_class": 150}` |
+| `O-ring 20 x 2` / `O-ring for a 20 mm bore` | `{"inner_diameter_mm": 20, "chord_thickness_mm": 2}` / `{"outer_diameter_mm": 20}` |
+| `retaining ring for 35 mm bore` / `circlip 20 mm shaft` | `{"bore_mm": 35}` / `{"shaft_diameter_mm": 20}` |
+| `parallel key 8x7x40` | `{"width_mm": 8, "height_mm": 7, "length_mm": 40}` (keys are ordered b x h x l) |
+| `angular contact bearing 7205` / `NU 205` | `{"designation": "7205"}` / `{"designation": "NU205"}` |
 
 Equivalent standards count as the same (DIN 912 = ISO 4762, DIN 933 = ISO 4017, DIN 125 = ISO 7089, ...).
 With "exactly", "only" or "strictly" before the standard (`standard_exact`) only that number counts: a DIN 912 part is then a mismatch, found "DIN 912 (equivalent, not the same number)".
@@ -166,6 +175,11 @@ With "exactly", "only" or "strictly" before the standard (`standard_exact`) only
 **Every word counts (without AI)**: a part is only `fits` when, besides meeting every spec, it contains every other word of the question in its name, description, tags, material or properties ("galvanized", "green", "nut"). Words that only phrase a spec ("at least", "bore", "shaft", "length", ...) and numbers and units are left out. A missing word makes the part `close` with "galvanized: not stated" in `mismatch_reasons`.
 **Materials as words**: "aluminium" (or "aluminum"), "brass", "bronze", "copper", "titanium", "plastic", "nylon", "rubber", "wood", "steel", "stainless" count only in the part's stated `material` (and its name, and material properties); a part without a stated material is checked on its name, description and tags. "For aluminium profiles" in a description makes no part aluminium. Also when the AI judges, a part that lacks the asked material is never `fits` ("brass: not stated").
 **Honest "none" without AI** (`decided: true`): for a short question that names a part ("cable gland"), when no candidate is that part (the last word, whole word, singular or plural; a capitalised product name such as "Nora" does not count), status is `none`: "no part in the library is a gland". When a defining spec of the question is stated by no candidate of that kind (e.g. `power_w` for "servo motor 400 W"), status is `none` too: "no motor in the library states its power, so none can be confirmed as 400 W". For other unknown kinds only candidates that are the thing asked for are shown.
+**Opposites are mismatches**: a retaining ring for a shaft is no ring for a bore of the same size, and an EN flange (DN/PN) is no ASME flange (NPS/class) of about the same size: found reads "for a shaft of 35 mm" or "DN50".
+**A designation in the name** (without specs, without AI): when every size or designation of the question is literally in a part's name, tags or `designation`/`package`/`size` ("IPE 200", "SOIC-8", "SHS 50x50x4", "0603 resistor": not "0603Metric", not "4x0603", not "200" for "20") and the part has every other word and names no other part ("Flange nut T8 lead screw" is a nut), it `fits` ("every size and word of the question is in its name"), shortest name first; `status` `found`.
+**Before the search** (also with AI): part names in Dutch, German and French are read as the English names the library uses ("inbusbout M8x30" → "socket head bolt M8x30", "kogellager 10 mm as", "Flansch DN50"); the message then starts with "Read as “...”." and `interpreted_requirements.read_as` holds the text that was searched. Electrical values of passive parts ("10k", "100nF", "16MHz", "5%") are left out of the search, because a 3D model does not show them: "10k is an electrical value: a 3D model does not show it, the package decides the shape." Input that asks for nothing ("???", "a", "x30") gets `status` `none` and "Type the part you need, for example ...", without any results.
+**The same part once**: the same standard part from two sources (same category, the same stated sizes, outer size within 5 %) is shown once, the company's own model before a general one.
+**Gear pairs** (`decided: true`, no AI): "a spur gear pair for 3:1", "gear set ratio 4, centre distance 80 mm, module between 1.5 and 2": two existing gears of the same module and pressure angle whose teeth give exactly that ratio (and centre distance a = m·(z1+z2)/2, module), at most 3 pairs, one per module first (pinions of 17 teeth or more first, then near 20 teeth, then a module near 1.5). `groups` holds one group per pair (`request` "m2, 20 + 60 teeth, centre distance 80 mm", results pinion and wheel); `interpreted_requirements.gear_pair` = `{"ratio", "type", "centre_distance_mm"?, "module"?}`. A pinion under 17 teeth is `close` ("undercut at 20° unless profile shifted"), a helical pair says to check the hand. No such pair: `status` `none`, "The library pairs existing models; it does not design gears."
 **Message without AI**: with `use_ai: false` or the AI switched off the message is "The best search results, not judged yet: check whether they fit." (no error); "AI not available (...)" only when the AI failed.
 **Confirmed before "fits"**: a defining spec, the property class, the material grade, every exclusion, text requirement and upper limit must be confirmed by the part's own data; when one is `unknown` the part is "close", also when the AI judged it "fits".
 "At least" specs: `holding_torque_nm`, `pn` (a stronger part also fits). A part property may be a list

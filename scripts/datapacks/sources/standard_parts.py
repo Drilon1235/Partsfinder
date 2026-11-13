@@ -5,9 +5,13 @@ scripts/datapacks/generate_standard_parts.py and shipped in the pack (there is n
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 from common import Item, Source
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "engineering"))
+from enrich_standard_parts import enrich  # noqa: E402  (the same engineering data as the demo library)
 
 LICENSE = "Apache-2.0"
 
@@ -90,7 +94,9 @@ def items(src: Path) -> list[Item]:
         pid = meta.pop("id")
         meta = {k: v for k, v in meta.items() if v is not None}
         meta["license"] = LICENSE
-        meta = with_designation(meta)
+        enrich(meta)                       # property classes, DIN equivalents, synonyms, bearing designations
+        if "designation" not in meta.get("properties", {}):
+            meta = with_designation(meta)
         out.append(Item(id=pid, file=step, url=None, meta=meta))
     return out
 

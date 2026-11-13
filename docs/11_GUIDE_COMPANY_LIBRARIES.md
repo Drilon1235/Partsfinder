@@ -25,7 +25,7 @@ Without signing in, the app only shows the general library.
 
 ## 2. The first time: make the administrator account
 
-1. Update (Sync Changes), close `api.bat` and the app, and start `app.bat`.
+1. Update (Sync Changes), close `scripts\windows\api.bat` and the app, and start `scripts\windows\app.bat`.
 2. Top right, click **Sign in**. On a library without accounts it opens on the **Administrator** tab:
    **Create the administrator account**.
 3. Type your username and a password (at least 8 characters) twice, and click **Create and sign in**.
@@ -184,9 +184,9 @@ For a company whose files are on a server share, the administrator can keep the 
 uploading by hand. On the pc that runs the library:
 
 ```
-sync.bat "\\nas\cad" janssen-engineering
+scripts\windows\sync.bat "\\nas\cad" janssen-engineering
 ```
-Schedule it with Windows Task Scheduler: Create Basic Task → Daily → Start a program → `sync.bat`, arguments
+Schedule it with Windows Task Scheduler: Create Basic Task → Daily → Start a program → `scripts\windows\sync.bat`, arguments
 `"\\nas\cad" janssen-engineering`. New, changed and removed files follow. If the share cannot be reached, or more than half of the
 parts would disappear, nothing is removed. The log of the last run is in `backend\sync_log.txt`.
 

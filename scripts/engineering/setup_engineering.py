@@ -3,7 +3,7 @@
 Imports data/global/engineering, data/global/standard-parts and data/global/freecad; changed JSON files
 (new English ids, polished names) update the existing parts in place.
 
-    backend\\.venv\\Scripts\\python scripts\\engineering\\setup_engineering.py      (Windows, or engineering.bat)
+    backend\\.venv\\Scripts\\python scripts\\engineering\\setup_engineering.py      (Windows, or scripts\\windows\\engineering.bat)
     backend/.venv/bin/python scripts/engineering/setup_engineering.py            (Mac/Linux)
 
 Options: --skip-build (STEP files already there), --no-thumbnails, --db PATH

@@ -59,6 +59,7 @@ STOPWORDS = {
     "make", "give", "get", "show", "draw", "create", "design", "provide", "send", "build", "model",
     "could", "would", "like", "us", "id", "im", "lets", "let", "have", "has", "do", "does", "got", "any",
     "d", "ll", "s", "ve", "re",                     # left over from I'd, I'll, let's, I've, we're
+    "between",                                      # "between 25 and 40 mm": a range, checked as a spec
 }
 
 

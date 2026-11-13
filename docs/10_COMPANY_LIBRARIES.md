@@ -113,7 +113,7 @@ On top of that, a company can be **confidential**: none of its parts ever goes t
 
 ## Sync from a share or NAS
 `python -m partsfinder.ingest \\nas\cad --company acme --sync` (or `POST /ingest` with `"sync": true`),
-scheduled with Windows Task Scheduler (`sync.bat`) e.g. every night:
+scheduled with Windows Task Scheduler (`scripts\windows\sync.bat`) e.g. every night:
 - new files are imported, changed files (same path, new content) replace their part under the same id,
   unchanged files are skipped (only the access group is updated when a `.partsfinderaccess` changed);
 - parts whose file is gone, or now excluded by `.partsfinderignore`, are removed completely (rule 5);

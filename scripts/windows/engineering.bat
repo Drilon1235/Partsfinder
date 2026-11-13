@@ -1,8 +1,8 @@
 @echo off
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 set PYTHONUTF8=1
 if not exist backend\.venv\Scripts\python.exe (
-  echo Run setup_windows.bat first.
+  echo Run scripts\windows\setup_windows.bat first.
   pause
   exit /b 1
 )

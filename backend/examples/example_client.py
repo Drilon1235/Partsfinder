@@ -1,6 +1,6 @@
 """Example: how another program (a CAD tool, a script, another AI) calls Partsfinder.
 
-1. First start the API (double-click api.bat, or: python -m partsfinder.api).
+1. First start the API (double-click scripts/windows/api.bat, or: python -m partsfinder.api).
 2. Then run:  python examples/example_client.py "green garden chair" [company_id]
 
 The script looks for an existing model. If there is a good match, it downloads
@@ -43,7 +43,7 @@ def main() -> int:
     try:
         result = find_existing_model(question, company)
     except requests.ConnectionError:
-        print("The API is not running. Start api.bat first.")
+        print("The API is not running. Start scripts/windows/api.bat first.")
         return 1
 
     print(f"{result['status'].upper()}: {result['message']}")

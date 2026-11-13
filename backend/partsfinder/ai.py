@@ -21,6 +21,8 @@ from typing import Any
 
 from .search import (MIN_WORD_COVERAGE, STOPWORDS, UNIT_WORDS, SearchEngine, SearchFilters, SearchHit,
                      _part_tokens, _query_words, _stem, filters_as_dict, looks_relevant, matched_query_words, merge_filters)
+from .query import (EMPTY_MESSAGE, MIN_TEETH, Prepared, drop_duplicates, gear_pair_request, gear_pairs, name_fits,
+                    size_tokens)
 from .specs import (CONFIRM, KEY_SPECS, SPEC_LABELS, _prop, format_value, kind_of, kind_words, missing_defining,
                     parse_preferences, parse_specs, query_form, several_parts, split_preferences,
                     ATTRIBUTE_WORDS)
@@ -646,6 +648,14 @@ def _distance(summary: Any) -> float:
     """How far the deviating numeric specs are off (relative), for "nearest size" ordering."""
     total = 0.0
     for c in summary.mismatched:
+        if isinstance(c.requested, dict):              # a range: how far outside it
+            try:
+                v = float(c.found if not isinstance(c.found, list) else c.found[0])
+                lo, hi = c.requested.get("min", v), c.requested.get("max", v)
+                total += max(lo - v, v - hi, 0.0) / max(abs(hi if v > hi else lo), 1.0)
+            except (TypeError, ValueError):
+                total += 1.0
+            continue
         try:
             a = float(re.match(r"\d+(?:\.\d+)?", str(c.requested)).group(0))
             b = float(re.match(r"\d+(?:\.\d+)?", str(c.found if not isinstance(c.found, list) else c.found[0])).group(0))
@@ -695,6 +705,11 @@ def missing_words(query: str, part: Any) -> list[str]:
     made_of = (" ".join([part.material, part.name, material_props]) if part.material else text).lower()
     found |= {w for w in words if w in ATTRIBUTE_WORDS and _has_word(w, made_of if w in MATERIAL_WORDS else text)}
     return [w for w in words if w not in found]
+
+
+def _missing_names(query: str, part: Any) -> list[str]:
+    """Words of the question the part lacks, without sizes (name_fits compares those, 'L50x50x5' has '50x50x5')."""
+    return [w for w in missing_words(query, part) if not re.search(r"\d", w)]
 
 
 def names_part(word: str, part: Any) -> bool:
@@ -772,6 +787,8 @@ def judge_by_specs(hits: list[SearchHit], limit: int, query: str = "") -> list[J
             other.append(Judged(h, "close", match, mismatch))
     # all requirements met: the one whose words fit the question best first ("carriage" vs "rail")
     fits.sort(key=lambda j: -round(j.hit.word_coverage or 0.0, 2))
+    # deviating: the one that meets most, then the nearest size ("8x7x42" before "8x7x84" for "8x7x40")
+    close.sort(key=lambda j: (-round(j.hit.specs.score(), 3), _distance(j.hit.specs)))
     ordered = fits + close
     if not ordered:
         # no part has the defining spec: show at most two nearest of the right kind, marked as deviating
@@ -852,7 +869,9 @@ def _search_without_ai(engine: SearchEngine, query: str, company_id: str | None,
                        reason: str, filters: SearchFilters | None) -> FindResult:
     specs = parse_specs(query)
     open_specs = missing_defining(query, specs)
-    hits = engine.search(query, company_id, filters, limit=max(limit * 3, 80) if specs or open_specs else limit)
+    sizes = size_tokens(query)
+    hits = engine.search(query, company_id, filters,
+                         limit=max(limit * 3, 80) if specs or open_specs or sizes else limit)
     reason_txt = f" ({reason})" if reason else ""
     req: dict[str, Any] = {"search_text": query}
     if specs:
@@ -901,6 +920,22 @@ def _search_without_ai(engine: SearchEngine, query: str, company_id: str | None,
                 judged = kind_parts                    # a nut question shows nuts, not a bolt
             return FindResult(status, msg, {**req, "ai": f"not used{reason_txt}"}, judged, ai_used=False,
                               decided=decided)
+    # a designation that is literally in the name, with every other word of the question: "IPE 200", "SOIC-8",
+    # "SHS 50x50x4", "0603 resistor". Shortest name first: "R 0603" before "R Array 4x0603"
+    by_name = [h for h in hits if name_fits(query, h.part) and not _missing_names(query, h.part)
+               and (not kind or same_kind(query, h.part))]
+    if by_name and not specs:
+        by_name.sort(key=lambda h: (len(h.part.name), -h.score))
+        rest = [h for h in hits if h not in by_name and same_kind(query, h.part)
+                and (not head or names_part(head, h.part))][:max(0, limit - len(by_name))]
+        judged = [Judged(h, "fits", ["every size and word of the question is in its name"], []) for h in by_name[:limit]]
+        judged += [Judged(h, "close", [], [f"{w}: not stated" for w in missing_words(query, h.part)]
+                          or ["another size"]) for h in rest]
+        n = min(len(by_name), limit)
+        msg = (f"{n} model{'s' if n != 1 else ''} with exactly this designation"
+               f"{'' if len(by_name) <= limit else f' (the first {limit} of {len(by_name)})'}.")
+        return FindResult("found", msg, {**req, "ai": f"not used{reason_txt}"}, judged, ai_used=False,
+                          decided=not several_parts(query))
     if not looks_relevant(hits):
         # nothing contains the words of the question: say so honestly, do not show random parts
         msg = "No existing model found: no part matches the main words of your question."
@@ -934,6 +969,68 @@ def _search_without_ai(engine: SearchEngine, query: str, company_id: str | None,
 
 
 NOT_JUDGED = "The best search results, not judged yet: check whether they fit."
+
+
+# ---- what every answer gets, with or without AI ---------------------------------------------------
+def answer_nothing(prepared: Prepared) -> FindResult:
+    return FindResult("none", EMPTY_MESSAGE, {"search_text": prepared.original}, [], ai_used=False, decided=True)
+
+
+def finish(result: FindResult, prepared: Prepared) -> FindResult:
+    """The same part from two sources once, and what was read differently said above the answer."""
+    result.results = drop_duplicates(result.results)
+    for _, r in result.groups:
+        r.results = drop_duplicates(r.results)
+    if prepared.notes:
+        result.message = " ".join([*prepared.notes, result.message]).strip()
+        result.requirements = {**result.requirements, "read_as": prepared.text}
+    return result
+
+
+def search_gear_pair(engine: SearchEngine, query: str, company_id: str | None, limit: int = 5,
+                     filters: SearchFilters | None = None) -> FindResult | None:
+    """'A spur gear pair for 3:1': two gears in the library with the same module whose teeth give that ratio
+    (and the asked centre distance or module). None when the question asks no ratio of a gear pair."""
+    req = gear_pair_request(query)
+    if req is None:
+        return None
+    category = SearchFilters(category=f"drivetrain/gear/{req['type']}")
+    gears = engine.search("", company_id, merge_filters(category, filters), limit=5000)
+    pairs = gear_pairs(gears, req)
+    ratio = _fmt_num(req["ratio"])
+    asked = [f"ratio {ratio}:1"] + ([f"centre distance {_fmt_num(req['centre_distance_mm'])} mm"]
+                                    if "centre_distance_mm" in req else []) + (
+        [f"module {format_value('module', req['module']).lstrip('m')}"] if "module" in req else [])
+    requirements = {"search_text": query, "gear_pair": req}
+    if not pairs:
+        msg = (f"No pair of {req['type']} gears in the library meets {', '.join(asked)}: no two gears of the same "
+               "module have teeth in that ratio. The library pairs existing models; it does not design gears.")
+        return FindResult("none", msg, requirements, [], ai_used=False, decided=True)
+    groups = []
+    for pinion, wheel, a in pairs[:max(1, min(3, (limit + 1) // 2))]:
+        m = _fmt_num(float(pinion.part.properties["module"]))
+        z1, z2 = int(pinion.part.properties["teeth"]), int(wheel.part.properties["teeth"])
+        why = [f"module {m}", f"{z1} : {z2} teeth = {ratio}:1", f"centre distance {_fmt_num(a)} mm"]
+        caution = [f"{z1} teeth: undercut at 20° unless profile shifted"] if z1 < MIN_TEETH else []
+        if req["type"] == "helical":
+            caution.append("a helical pair needs one left-hand and one right-hand gear: check the hand")
+        judged = [Judged(pinion, "fits" if not caution else "close", ["pinion", *why], caution),
+                  Judged(wheel, "fits" if not caution else "close", ["wheel", *why], caution)]
+        groups.append(({"request": f"m{m}, {z1} + {z2} teeth, centre distance {_fmt_num(a)} mm", "quantity": None},
+                       FindResult("found" if not caution else "partial", f"Pinion {z1} teeth and wheel {z2} teeth, "
+                                  f"module {m}.", requirements, judged, ai_used=False, decided=True)))
+    more = len(pairs) - len(groups)
+    msg = (f"{len(pairs)} pair{'s' if len(pairs) != 1 else ''} of existing {req['type']} gears "
+           f"meet{'s' if len(pairs) == 1 else ''} "
+           f"{', '.join(asked)}{f'; the best {len(groups)} are shown' if more > 0 else ''}. Both gears of a pair "
+           "have the same module and pressure angle.")
+    status = "found" if any(r.status == "found" for _, r in groups) else "partial"
+    return FindResult(status, msg, requirements, [j for _, r in groups for j in r.results], ai_used=False,
+                      decided=True, groups=groups)
+
+
+def _fmt_num(x: float) -> str:
+    return str(int(x)) if float(x).is_integer() else f"{x:g}"
 
 
 # ---- several parts in one question ---------------------------------------------------------------

@@ -158,7 +158,7 @@ def properties(text: str) -> dict:
     m = re.search(r"\bz(\d{1,3})\b", text)
     if m and "sprocket" in text.lower():
         props["teeth"] = int(m.group(1))
-    m = re.search(r"\b(\d+(?:[.,]\d+)?)x(\d+(?:[.,]\d+)?)(?:x(\d+(?:[.,]\d+)?))?\b", text)
+    m = re.search(r"(?<![\d.,])(\d+(?:[.,]\d+)?)x(\d+(?:[.,]\d+)?)(?:x(\d+(?:[.,]\d+)?))?\b", text)   # also "L50x50x5"
     if m and "thread" not in props:
         props["size"] = m.group(0).replace(",", ".")
     return {"properties": props, "standards": hints["standards"], "material": hints.get("material")}
@@ -206,7 +206,9 @@ def items(src: Path) -> list[Item]:
             meta = {"name": name[:200],
                     "description": f"{name}. From the FreeCAD parts library ({folder}).",
                     "category_path": cat, "sectors": TOP_SECTORS.get(top, []),
-                    "tags": list(dict.fromkeys([*tags, *words]))[:14],
+                    # the size as its own word, so "angle 50x50x5" finds "Angle Bar L50x50x5"
+                    "tags": list(dict.fromkeys([*tags, *([hints["properties"]["size"].lower()] if "size" in
+                                                          hints["properties"] else []), *words]))[:14],
                     "standards": hints["standards"],
                     "properties": {**hints["properties"], "original_name": f.name, "folder_in_freecad_library": folder},
                     **base}

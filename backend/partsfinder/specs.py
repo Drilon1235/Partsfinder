@@ -26,7 +26,8 @@ from .models import Part
 # (other thread, other bearing, other motor frame), never "fits".
 KEY_SPECS = {"standard", "standard_exact", "thread", "designation", "frame_size", "dn", "module", "teeth", "belt_profile",
              "profile_size", "bore_mm", "inner_diameter_mm", "outer_diameter_mm", "width_mm",
-             "piston_diameter_mm", "rail_size", "shaft_diameter_mm", "diameter_mm", "power_w"}
+             "piston_diameter_mm", "rail_size", "shaft_diameter_mm", "diameter_mm", "power_w", "nps", "pressure_class",
+             "chord_thickness_mm", "height_mm"}
 
 # Equivalent standards (same part, other number): DIN 912 = ISO 4762, DIN 933 = ISO 4017, ...
 EQUIVALENT_STANDARDS = [
@@ -113,13 +114,16 @@ SPEC_LABELS = {
     "max_size_mm": "largest size", "max_mass_g": "mass", "power_w": "power",
     "yield_strength_mpa": "yield strength", "tensile_strength_mpa": "tensile strength", "max_load_kg": "maximum load",
     "load_rating_kn": "dynamic load rating C", "static_load_rating_kn": "static load rating C0",
+    "nps": "NPS", "pressure_class": "pressure class", "chord_thickness_mm": "cross section", "height_mm": "height",
+    "thickness_mm": "thickness",
 }
 UNITS = {"length_mm": "mm", "inner_diameter_mm": "mm", "outer_diameter_mm": "mm", "width_mm": "mm",
          "holding_torque_nm": "Nm", "shaft_diameter_mm": "mm", "bore_mm": "mm", "slot_width_mm": "mm",
          "piston_diameter_mm": "mm", "stroke_mm": "mm", "pitch_mm": "mm", "rated_current_a": "A",
          "diameter_mm": "mm", "max_size_mm": "mm", "max_mass_g": "g", "power_w": "W",
          "yield_strength_mpa": "MPa", "tensile_strength_mpa": "MPa", "max_load_kg": "kg", "load_rating_kn": "kN",
-         "static_load_rating_kn": "kN"}
+         "static_load_rating_kn": "kN", "chord_thickness_mm": "mm", "height_mm": "mm",
+         "thickness_mm": "mm"}
 # how a requested value reads in the requirement table: "not galvanized", "≤ 50 mm"
 REQUEST_PREFIX = {"excluded": "not ", "max_size_mm": "≤ ", "max_mass_g": "≤ ", "yield_strength_mpa": "≥ ",
                   "tensile_strength_mpa": "≥ ", "max_load_kg": "≥ ", "load_rating_kn": "≥ ", "static_load_rating_kn": "≥ "}
@@ -151,6 +155,11 @@ def _num(text: str) -> float:
 
 
 def _fmt(value: Any) -> str:
+    if isinstance(value, dict):                        # a range: {"min": 25, "max": 40}
+        lo, hi = value.get("min"), value.get("max")
+        if lo is not None and hi is not None:
+            return f"{_fmt(lo)}–{_fmt(hi)}"
+        return f"≤ {_fmt(hi)}" if hi is not None else f"≥ {_fmt(lo)}"
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     if isinstance(value, list):
@@ -161,6 +170,8 @@ def _fmt(value: Any) -> str:
 def format_value(key: str, value: Any) -> str:
     if value is None:
         return "-"
+    if isinstance(value, str) and key in ("dn", "pn", "nps", "pressure_class") and re.search(r"[a-z]", value.lower()):
+        return value                                   # already written out: "NPS 3", "PN16"
     unit = UNITS.get(key)
     if key == "frame_size":
         return f"NEMA {_fmt(value)}"
@@ -170,6 +181,12 @@ def format_value(key: str, value: Any) -> str:
         return f"PN{_fmt(value)}"
     if key == "module":
         return f"m{_fmt(value)}"
+    if key == "nps":
+        return f"NPS {_fmt(value)}"
+    if key == "pressure_class":
+        return f"class {_fmt(value)}"
+    if isinstance(value, dict) and unit:
+        return f"{_fmt(value)} {unit}"
     return f"{_fmt(value)} {unit}" if unit and not isinstance(value, str) else _fmt(value)
 
 
@@ -205,6 +222,36 @@ def grade_relation(wanted: str, have: str) -> str:
     return "mismatch"
 
 
+RANGE_RE = re.compile(r"\b(?:(length|module|teeth|bore|diameter|width|dn|pn|shaft)\s+)?(?:of\s+|is\s+)?between\s+"
+                      r"(\d+(?:\.\d+)?)\s*(mm)?\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)\s*(mm|teeth)?")
+RANGE_KEYS = {"length": "length_mm", "module": "module", "teeth": "teeth", "bore": "bore_mm", "diameter": "diameter_mm",
+              "width": "width_mm", "dn": "dn", "pn": "pn", "shaft": "shaft_diameter_mm"}
+# inch threads: "1/4-20", "#10-32", "3/8-16 UNC", "1-8 UNC" (a whole number only with UNC/UNF), optional "x 1" length
+INCH_THREAD = re.compile(r"(?<![\w/#.])(#\d{1,2}|\d{1,2}/\d{1,2}|\d(?=\s?-\s?\d{1,2}\s?un[cfe]))\s?-\s?(\d{1,3})(?:\s?un[cfe]f?\b)?"
+                         r"(?:\s?x\s?(\d{1,2}\s\d{1,2}/\d{1,2}|\d{1,2}/\d{1,2}|\d{1,2}(?:\.\d+)?)\s?(?:\"|''|in(?:ch(?:es)?)?\b)?)?")
+RING_RE = re.compile(r"\b(?:retaining rings?|circlips?|snap rings?|seeger(?:\s?rings?)?|lock rings?)\b")
+KEY_RE = re.compile(r"\b(?:parallel|feather|woodruff|machine|shaft|gib)\s+keys?\b|\bkey\s+form\s+[ab]\b|"
+                    r"\bkeys?\s+\d{1,2}\s?x\s?\d{1,2}\b|\bdin\s?6885\b")
+# ASME pipe sizes as written on the parts: "1 1/2", "3/4", "2"
+_NPS_DECIMAL = {"0.5": "1/2", "0.75": "3/4", "1.25": "1 1/4", "1.5": "1 1/2", "2.5": "2 1/2", "3.5": "3 1/2"}
+
+
+def _nps(text: str) -> str:
+    t = " ".join(text.split())
+    return _NPS_DECIMAL.get(t, t[:-2] if t.endswith(".0") else t)
+
+
+def _inches(text: str) -> float:
+    total = 0.0
+    for piece in text.split():
+        if "/" in piece:
+            a, b = piece.split("/")
+            total += int(a) / int(b)
+        else:
+            total += float(piece)
+    return total
+
+
 # ---- 1. question -> specs ------------------------------------------------------------------------
 def split_preferences(query: str) -> tuple[str, str]:
     """(hard part, preferred part) of a question: "M8x30 bolt, preferably A4" -> ("M8x30 bolt, ", "A4")."""
@@ -237,14 +284,39 @@ def parse_specs(query: str) -> dict[str, Any]:
     q = re.sub(r"(\d),(\d)", r"\1.\2", q)
     specs: dict[str, Any] = {}
 
-    # upper limits first, so "max 500 mm" is not also read as a length
-    for m in LIMIT_RE.finditer(q):
+    # ranges: "length between 25 and 40 mm", "module between 1.5 and 2", "between 20 and 30 teeth"
+    for m in list(RANGE_RE.finditer(q))[::-1]:
+        lo, hi = sorted((_num(m.group(2)), _num(m.group(4))))
+        word = m.group(1) or ""
+        key = RANGE_KEYS.get(word) or ("teeth" if m.group(5) == "teeth" else None)
+        if not key and re.search(r"(?<![a-z0-9])m\d", q):
+            key = "length_mm"                          # "M8 bolt between 25 and 40 mm"
+        if key:
+            specs[key] = {"min": int(lo), "max": int(hi)} if key == "teeth" else {"min": lo, "max": hi}
+            q = q[:m.start()] + " " + q[m.end():]
+    # upper limits first, so "max 500 mm" is not also read as a length; "under 15 mm wide" limits the width only
+    for m in list(LIMIT_RE.finditer(q))[::-1]:
         value, unit = _num(m.group(1)), m.group(2)
+        dim = re.match(r"\s*(wide|width|long|length|thick|high|tall|in diameter)\b", q[m.end():])
+        if dim and unit not in ("g", "kg"):
+            key = {"wide": "width_mm", "width": "width_mm", "long": "length_mm", "length": "length_mm",
+                   "thick": "thickness_mm", "high": "height_mm", "tall": "height_mm",
+                   "in diameter": "outer_diameter_mm"}[dim.group(1)]
+            specs[key] = {"max": value * {"mm": 1, "cm": 10, "m": 1000}[unit]}
+            q = q[:m.start()] + " " + q[m.end() + dim.end():]
+            continue
         if unit in ("g", "kg"):
             specs["max_mass_g"] = value * (1000 if unit == "kg" else 1)
         else:
             specs["max_size_mm"] = value * {"mm": 1, "cm": 10, "m": 1000}[unit]
-    q = LIMIT_RE.sub(" ", q)
+        q = q[:m.start()] + " " + q[m.end():]
+    # inch threads: 1/4-20 x 1", #10-32 x 3/4, 1/2-13 UNC (length in inches)
+    m = INCH_THREAD.search(q)
+    if m:
+        specs["thread"] = f"{m.group(1)}-{m.group(2)}"
+        if m.group(3):
+            specs["length_mm"] = round(_inches(m.group(3)) * 25.4, 2)
+        q = q[:m.start()] + " " + q[m.end():]
     # general tolerances ISO 2768-m / -mK: a tolerance class the part must state, not a standard it must name
     m = re.search(r"\biso\s?2768\s?-?\s?([fmcv])([hkl])?\b", q)
     if m:
@@ -302,12 +374,20 @@ def parse_specs(query: str) -> dict[str, Any]:
         specs["power_w"] = _num(m.group(1)) * (1000 if m.group(2) == "kw" else 1)
 
     # thread + length: M8x30, M8 x 30, M8 30mm, "M10 bolt 60 mm"
-    m = re.search(r"\bm(\d{1,2}(?:\.\d)?)\s?x\s?(\d{1,3}(?:\.\d+)?)(?!\s?x)\b", q)
+    # fine thread with length first: M12x1.25x40 / M12 x 1.5 x 40
+    fine = None if "thread" in specs else re.search(
+        r"\bm(\d{1,2}(?:\.\d)?)\s?x\s?(\d\.\d{1,2}|[1-4])\s?x\s?(\d{1,3}(?:\.\d+)?)(?![\d.])", q)
+    if fine:
+        specs.update(thread="M" + _fmt(_num(fine.group(1))), pitch_mm=_num(fine.group(2)), length_mm=_num(fine.group(3)))
+        q = q[:fine.start()] + " " + q[fine.end():]
+    m = None if "thread" in specs else re.search(r"\bm(\d{1,2}(?:\.\d)?)\s?x\s?(\d{1,3}(?:\.\d+)?)(?![\d.])(?!\s?x)", q)
     pitch = None
     if m and float(m.group(2)) < 5 and "." in m.group(2):         # M8x1.25 = pitch, not length
         pitch = m.group(2)
         m = None
-    if m and not re.search(r"\bmodule\b|\bmod\b", q[max(0, m.start() - 8):m.start()]):
+    if "thread" in specs:
+        pass                                           # an inch thread, read above
+    elif m and not re.search(r"\bmodule\b|\bmod\b", q[max(0, m.start() - 8):m.start()]):
         specs["thread"] = "M" + _fmt(_num(m.group(1)))
         specs["length_mm"] = _num(m.group(2))
     else:
@@ -317,7 +397,7 @@ def parse_specs(query: str) -> dict[str, Any]:
             rest = q[m.end():]
             lm = re.search(r"\b(?:length|l\s?=|long)?\s*(\d{1,3}(?:\.\d+)?)\s?mm\b(?!\s?(?:bore|shaft|wide|width|diameter))",
                            rest[:40])
-            if lm:
+            if lm and "length_mm" not in specs:
                 specs["length_mm"] = _num(lm.group(1))
     if pitch:
         specs["pitch_mm"] = _num(pitch)
@@ -348,7 +428,8 @@ def parse_specs(query: str) -> dict[str, Any]:
 
     # bearing designation: 6204, 6204-2RS, 6204 ZZ, 608zz, 61804-2rs; not a year or a length
     m = re.search(r"(?<![\d.x])((?:6[0-3]|16|618|619|60|62|63)\d{1,3}|60[0-9]|62[0-9]|63[0-9]|"
-                  r"608|623|624|625|626|627|629)(?:\s?-?\s?(2rs1?|2rsh|2z|zz|2rs|rs|z|llu|ddu))?(?![\d.]|\s?mm)", q)
+                  r"608|623|624|625|626|627|629)(?:\s?-?\s?(2rs1?|2rsh|2z|zz|2rs|rs|z|llu|ddu))?(?![\d.]|\s?(?:mm|rpm|min|bar|kg|kn|"
+                  r"n\b|nm|v\b|w\b|°|c\b|teeth|pcs|x\s?\d)|\s?/\s?min)", q)
     if m and ("bearing" in q or m.group(2) or re.search(r"\b(6[0-3]\d{2})\b", q) and "nema" not in q):
         base = m.group(1)
         grade_number = str(specs.get("material_grade", "")).startswith(base)     # "EN AW-6082" is aluminium
@@ -359,6 +440,16 @@ def parse_specs(query: str) -> dict[str, Any]:
                 specs["seal"] = {"ZZ": "2Z", "2RS1": "2RS", "2RSH": "2RS", "LLU": "2RS", "DDU": "2RS",
                                  "RS": "RS", "Z": "Z"}.get(seal, seal)
 
+    # other ISO 15 series: angular contact 7205 B, tapered roller 30205, cylindrical roller NU 205
+    if "designation" not in specs and "bearing" in q:
+        m = re.search(r"(?<![\w.])(7[0-3]\d{2}|3[0-3]\d{3}|nu\s?[2-4]\d{2}|nj\s?[2-4]\d{2})(?:\s?-?\s?(b|be|ac|bep))?(?![\w.])", q)
+        if m:
+            specs["designation"] = m.group(1).upper().replace(" ", "")
+    if "bearing" in q and "seal" not in specs:
+        if re.search(r"\b(?:sealed|seals|rubber seals?|2rs)\b", q):
+            specs["seal"] = "sealed"
+        elif re.search(r"\b(?:shielded|shields|metal shields?|zz|2z)\b", q):
+            specs["seal"] = "shielded"
     # alphanumeric catalogue designations: pillow blocks UCP205 / UCF206, linear bushings LM12UU
     m = re.search(r"\b(uc[pfl]?\d{3}|ucfl\d{3}|lm\d{1,2}uu(?:l)?)\b", q)
     if m and "designation" not in specs:
@@ -399,7 +490,8 @@ def parse_specs(query: str) -> dict[str, Any]:
         specs["bore_mm"] = _num(m.group(1))
     m = (re.search(r"\b(?:for|on)\s(?:an?\s)?(?:ø\s?)?(\d{1,3}(?:\.\d+)?)\s?mm\s(?:diameter\s)?shaft\b", q)
          or re.search(r"\bshaft\s?(?:diameter\s?)?ø?\s?(\d{1,3}(?:\.\d+)?)\s?mm\b", q)
-         or re.search(r"ø\s?(\d{1,3}(?:\.\d+)?)\s?(?:mm\s)?shaft\b", q))
+         or re.search(r"ø\s?(\d{1,3}(?:\.\d+)?)\s?(?:mm\s)?shaft\b", q)
+         or re.search(r"(?<![\w.])(\d{1,3}(?:\.\d+)?)\s?mm\s(?:diameter\s)?(?:shaft|axle|rod)\b", q))
     if m:
         key = "shaft_diameter_mm" if "frame_size" in specs or "linear shaft" in q or "rod" in q else "bore_mm"
         if "bearing" in q or "bushing" in q or "pillow" in q or "coupling" in q or "pulley" in q:
@@ -418,6 +510,14 @@ def parse_specs(query: str) -> dict[str, Any]:
     m = re.search(r"\bpn\s?(\d{1,3})\b", q)
     if m:
         specs["pn"] = int(m.group(1))
+    if "flange" in q:                                  # ASME B16.5: NPS 2 / 2 inch / 2", class 300 / 300#
+        m = (re.search(r"\bnps\s?(\d{1,2}\s\d/\d|\d/\d|\d{1,2}(?:\.\d+)?)", q)
+             or re.search(r"(?<![\w/.])(\d{1,2}\s\d/\d|\d/\d|\d{1,2}(?:\.\d+)?)\s?(?:\"|''|-?\s?inch(?:es)?\b|in\b)", q))
+        if m:
+            specs["nps"] = _nps(m.group(1))
+        m = re.search(r"\bclass\s?(150|300|400|600|900|1500|2500)\b|\b(150|300|400|600|900|1500|2500)\s?(?:#|lbs?\b)", q)
+        if m:
+            specs["pressure_class"] = int(m.group(1) or m.group(2))
 
     # aluminium profiles: 40x40 (two numbers, no third), slot 8 / "8 mm slot" / "b-type"
     if "profile" in q or "extrusion" in q or "t-slot" in q or "slot" in q:
@@ -461,6 +561,46 @@ def parse_specs(query: str) -> dict[str, Any]:
         if m:
             specs["length_mm"] = _num(m.group(1) or m.group(2))
 
+    # O-rings: "O-ring 20 x 2", "ID 50 cross section 3", "for a 20 mm bore" (= outer diameter), "for a 20 mm rod"
+    if re.search(r"\bo-?rings?\b", q):
+        for k in ("bore_mm", "shaft_diameter_mm", "inner_diameter_mm", "outer_diameter_mm", "width_mm", "length_mm",
+                  "thread", "pitch_mm"):
+            specs.pop(k, None)
+        m = re.search(r"(?<![\w.])(\d{1,3}(?:\.\d+)?)\s?(?:mm\s)?x\s?(\d{1,2}(?:\.\d+)?)(?![\w.])", q)
+        if m:
+            specs.update(inner_diameter_mm=_num(m.group(1)), chord_thickness_mm=_num(m.group(2)))
+        m = re.search(r"\b(?:id|inner diameter|inside diameter)\s?(?:of\s)?(\d{1,3}(?:\.\d+)?)", q)
+        if m:
+            specs["inner_diameter_mm"] = _num(m.group(1))
+        m = re.search(r"\b(?:od|outer diameter|outside diameter)\s?(?:of\s)?(\d{1,3}(?:\.\d+)?)", q)
+        if m:
+            specs["outer_diameter_mm"] = _num(m.group(1))
+        m = re.search(r"\b(?:cross[\s-]?section|cs|thickness|cord)\s?(?:of\s)?(\d{1,2}(?:\.\d+)?)", q)
+        if m:
+            specs["chord_thickness_mm"] = _num(m.group(1))
+        m = re.search(r"(\d{1,3}(?:\.\d+)?)\s?mm\s(?:diameter\s)?(?:bore|housing|cylinder)\b|\bbore\s?(?:of\s)?(\d{1,3}(?:\.\d+)?)", q)
+        if m and "outer_diameter_mm" not in specs:
+            specs["outer_diameter_mm"] = _num(m.group(1) or m.group(2))
+        m = re.search(r"(\d{1,3}(?:\.\d+)?)\s?mm\s(?:diameter\s)?(?:shaft|rod|piston rod)\b|\b(?:shaft|rod)\s?(?:of\s)?(\d{1,3}(?:\.\d+)?)", q)
+        if m and "inner_diameter_mm" not in specs:
+            specs["inner_diameter_mm"] = _num(m.group(1) or m.group(2))
+    # retaining rings: one for a shaft (DIN 471) is not one for a bore (DIN 472)
+    if RING_RE.search(q):
+        size = specs.pop("bore_mm", None) or specs.pop("shaft_diameter_mm", None)
+        specs.pop("thread", None)
+        if size is not None:
+            specs["shaft_diameter_mm" if re.search(r"\b(?:shaft|axle|external|din\s?471)\b", q)
+                  and not re.search(r"\b(?:bore|hole|housing|internal|din\s?472)\b", q) else "bore_mm"] = size
+    # parallel keys are ordered as width x height x length: "parallel key 8x7x40"
+    if KEY_RE.search(q):
+        m = re.search(r"(?<![\w.])(\d{1,2})\s?x\s?(\d{1,2})(?:\s?x\s?(\d{1,3}))?(?![\w.])", q)
+        if m:
+            for k in ("inner_diameter_mm", "outer_diameter_mm", "thread", "length_mm", "designation"):
+                specs.pop(k, None)
+            specs.update(width_mm=_num(m.group(1)), height_mm=_num(m.group(2)))
+            if m.group(3):
+                specs["length_mm"] = _num(m.group(3))
+
     m = re.search(r"\b([a-h]\d{1,2}|[A-H]\d{1,2})\s?(?:tolerance|fit)\b|\b(h6|h7|g6|k6|j6|f7|m6)\b", (query or ""))
     if (m and "thread" not in specs or (m and "shaft" in q)) and "tolerance" not in specs:
         specs["tolerance"] = (m.group(1) or m.group(2))
@@ -471,8 +611,12 @@ def parse_specs(query: str) -> dict[str, Any]:
 # What defines each kind of part. A question that names the kind but not these values is too vague to pick
 # one model ("a bolt": which thread, which length?). Any key of a tuple is enough; the first kind found counts.
 DEFINING = [
+    (r"\bo-?rings?\b", [("inner_diameter_mm", "outer_diameter_mm"), ("chord_thickness_mm",)]),
+    (RING_RE.pattern, [("shaft_diameter_mm", "bore_mm")]),
+    (KEY_RE.pattern, [("width_mm", "shaft_diameter_mm"), ("length_mm",)]),
     (r"\bthreaded rods?\b|\bstuds?\b", [("thread",), ("length_mm",)]),
-    (r"\b(?:bolts?|screws?)\b", [("thread",), ("length_mm",)]),
+    (r"(?<!lead )(?<!ball )(?<!power )(?<!jack )\b(?:bolts?|screws?)\b(?!\s*(?:terminals?|jacks?|drivers?|clamps?|conveyors?))",
+     [("thread",), ("length_mm",)]),
     (r"\bnuts?\b", [("thread",)]),
     (r"\bwashers?\b", [("thread", "inner_diameter_mm")]),
     (r"\b(?:pillow blocks?(?: bearings?)?|linear bearings?|linear bushings?)\b", [("designation", "bore_mm", "shaft_diameter_mm")]),
@@ -480,7 +624,7 @@ DEFINING = [
     (r"\b(?:stepper|nema)\b", [("frame_size",)]),
     (r"\bpulleys?\b", [("belt_profile",), ("teeth",)]),
     (r"\bgears?\b", [("module",), ("teeth",)]),
-    (r"\bflanges?\b", [("dn",)]),
+    (r"\bflanges?\b", [("dn", "nps")]),
     (r"\b(?:profiles?|extrusions?)\b", [("profile_size",)]),
     (r"\b(?:shaft |set |clamping )?collars?\b", [("bore_mm",)]),
     (r"\bcouplings?\b", [("bore_mm",)]),
@@ -501,7 +645,9 @@ ATTRIBUTE_WORDS = {
 
 # how a chosen value is added to the question so that parse_specs reads it back
 QUERY_FORM = {"length_mm": "{} mm", "inner_diameter_mm": "{} mm bore", "frame_size": "NEMA {}", "teeth": "{} teeth", "module": "module {}",
-              "dn": "DN{}", "bore_mm": "{} mm bore", "piston_diameter_mm": "bore {}", "stroke_mm": "stroke {}"}
+              "dn": "DN{}", "bore_mm": "{} mm bore", "piston_diameter_mm": "bore {}", "stroke_mm": "stroke {}",
+              "nps": "NPS {}", "shaft_diameter_mm": "{} mm shaft", "chord_thickness_mm": "cross section {}",
+              "width_mm": "{} mm wide"}
 
 
 def kind_of(query: str) -> tuple[str, list[tuple[str, ...]]] | None:
@@ -520,6 +666,7 @@ def several_parts(query: str) -> bool:
     """Does the question ask for more than one part ("bolt with nut and washer", "bearing and pillow block")?
     Then one search cannot settle it. On doubt (a joining word) we say yes: a slower answer, never a missing part."""
     q = split_preferences(query)[0].lower()
+    q = RANGE_RE.sub(" ", q)                           # "between 25 and 40 mm" is one requirement
     kinds = 0
     for pattern, _ in DEFINING:                        # each piece of text names one kind at most
         if re.search(pattern, q):                      # ("pillow block bearing" is one part, not two)
@@ -670,6 +817,34 @@ def check_specs(specs: dict[str, Any], part: Part) -> list[SpecCheck]:
                 checks.append(SpecCheck(key, wanted, ", ".join(dict.fromkeys(values)) or part.material, "mismatch"))
             continue
         have = _prop(part, key)
+        if key in ("bore_mm", "shaft_diameter_mm") and RING_RE.search(part.name.lower()):
+            # a ring for a shaft is not one for a bore of the same size
+            have = part.properties.get(key)
+            other = part.properties.get("shaft_diameter_mm" if key == "bore_mm" else "bore_mm")
+            if have is None and other is not None:
+                checks.append(SpecCheck(key, want, f"for a {'shaft' if key == 'bore_mm' else 'bore'} of "
+                                                   f"{_fmt(float(other))} mm", "mismatch"))
+                continue
+        if have is None and key in ("nps", "pressure_class", "dn", "pn"):
+            # an EN flange (DN/PN) is no ASME flange (NPS/class) of about the same size, and the other way round
+            other = {"nps": "dn", "pressure_class": "pn", "dn": "nps", "pn": "pressure_class"}[key]
+            value = part.properties.get(other)
+            if value not in (None, ""):
+                checks.append(SpecCheck(key, want, format_value(other, value), "mismatch"))
+                continue
+        if have is None and key in ("width_mm", "height_mm") and part.category_path == "fasteners/pin/key":
+            section = engineering.KEY_SECTION.get(part.properties.get("shaft_diameter_mm"))
+            have = section[0 if key == "width_mm" else 1] if section else None
+        if isinstance(want, dict):                     # a range or a limit
+            values = have if isinstance(have, list) else [have]
+            numbers = [float(v) for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+            if not numbers:
+                checks.append(SpecCheck(key, want, have, "unknown"))
+                continue
+            lo, hi = want.get("min", float("-inf")), want.get("max", float("inf"))
+            ok = any(lo - 1e-6 <= v <= hi + 1e-6 for v in numbers)
+            checks.append(SpecCheck(key, want, have, "match" if ok else "mismatch"))
+            continue
         if key == "property_class":
             values = have if isinstance(have, list) else ([have] if have else [])
             if not values:
@@ -706,12 +881,19 @@ def check_specs(specs: dict[str, Any], part: Part) -> list[SpecCheck]:
             ok = hv >= float(want) * 0.999 if key in AT_LEAST else _same_number(hv, want)
             checks.append(SpecCheck(key, want, hv, "match" if ok else "mismatch"))
             continue
+        if key == "seal" and want in ("sealed", "shielded"):
+            kind = {"2RS": "sealed", "RS": "sealed", "2RSH": "sealed", "2RS1": "sealed", "2Z": "shielded",
+                    "ZZ": "shielded", "Z": "shielded"}.get(str(have).upper().replace("-", ""), "open")
+            checks.append(SpecCheck(key, want, have, "match" if kind == want else "mismatch"))
+            continue
         if key == "designation":
             want_s = str(want).lower()
             have_s = str(have).lower().replace(" ", "")
             if want_s.isdigit():                       # bearing number: compare the number, not the suffix
                 m = re.match(r"\d+", have_s)
                 ok = bool(m) and m.group(0) == want_s
+            elif re.fullmatch(r"(?:nu|nj)\d+", want_s):   # "NU205" = "NU 205"
+                ok = re.sub(r"[^0-9a-z]", "", have_s) == want_s
             else:
                 ok = re.sub(r"[^0-9a-z]", "", have_s).startswith(re.sub(r"[^0-9a-z]", "", want_s))
             checks.append(SpecCheck(key, want, have, "match" if ok else "mismatch"))

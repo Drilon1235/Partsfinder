@@ -39,13 +39,13 @@ const PYTHON = process.platform === 'win32'
   ? path.join(BACKEND, '.venv', 'Scripts', 'python.exe')
   : path.join(BACKEND, '.venv', 'bin', 'python');
 const START_HINT = PACKAGED ? 'Close every Partsfinder window and start Partsfinder again.'
-  : 'Close api.bat (or every Partsfinder window) and start app.bat again.';
+  : 'Close scripts\\windows\\api.bat (or every Partsfinder window) and start scripts\\windows\\app.bat again.';
 
 // How to start the search engine: the bundled program when installed, backend/.venv when run from the source.
 function backendCommand(port) {
   if (!PACKAGED) {
     return { cmd: PYTHON, args: ['-m', 'partsfinder.api', '--port', port], cwd: BACKEND, env: {},
-             missing: 'Python environment not found. Run setup_windows.bat first.' };
+             missing: 'Python environment not found. Run scripts\\windows\\setup_windows.bat first.' };
   }
   const res = process.resourcesPath;
   const data = app.getPath('userData');
@@ -157,7 +157,7 @@ async function api(method, route, body, { timeoutMs = 180000 } = {}) {
     if (!res.ok) {
       const detail = data && data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : res.statusText;
       if (res.status === 404 && detail === 'Not Found') {
-        // the route itself does not exist: an older search engine is still running (e.g. api.bat from before an update)
+        // the route itself does not exist: an older search engine is still running (e.g. scripts/windows/api.bat from before an update)
         return { ok: false, status: 404, error: 'The running search engine is an older version and does not know this yet. '
           + START_HINT };
       }
@@ -217,7 +217,7 @@ async function ensureBackend() {
   const up = await isUp();
   if (up) { await connected(up); return; }
   if (process.env.PARTSFINDER_NO_SPAWN === '1') {
-    setState('error', `No search engine at ${API}. Start api.bat first.`);
+    setState('error', `No search engine at ${API}. Start scripts\\windows\\api.bat first.`);
     return;
   }
   const port = new URL(API).port || '8000';

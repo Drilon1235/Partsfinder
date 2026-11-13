@@ -3,7 +3,7 @@
 The Partsfinder window. You type the part you need, and the app shows existing models with preview, dimensions and the reasons why they fit or not.
 
 ## Start
-**Windows:** double-click `app.bat` in the project folder. The first time it:
+**Windows:** double-click `scripts\windows\app.bat` in the project folder. The first time it:
 - installs Node.js (via winget) if missing,
 - installs Electron (~100 MB).
 
@@ -31,7 +31,7 @@ library). After that people sign in with their name and password; without signin
 - "Stay signed in" stores the sign-in encrypted by Windows. An API key (`PARTSFINDER_API_KEYS`) still works: "Use an API key instead".
 See `docs/10_COMPANY_LIBRARIES.md`.
 
-The app looks for the search engine at `http://127.0.0.1:8000`. If `api.bat` is already running it uses that. Otherwise the app starts the search engine itself (from `backend/.venv`) and stops it on exit.
+The app looks for the search engine at `http://127.0.0.1:8000`. If `scripts\windows\api.bat` is already running it uses that. Otherwise the app starts the search engine itself (from `backend/.venv`) and stops it on exit.
 
 **Settings** (gear icon top right): add your own Anthropic API key to switch on the AI. The app stores it encrypted by
 the operating system (`anthropic-key.bin` in the app's data folder) and hands it to the search engine on this pc only.
