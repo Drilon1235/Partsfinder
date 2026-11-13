@@ -19,6 +19,7 @@ Windows: `setup_windows.bat`, then `app.bat`. Mac: `bash scripts/setup_mac.sh`, 
 cd backend
 .venv\Scripts\python -m pytest            # all tests must pass; add tests for what you change
 python ..\scripts\ui_screenshots.py         # for UI changes: every screen at 1440, 820 and 390 px
+cd ..\app && npm run test:e2e              # for app changes: the real app window against a test library
 ```
 The tests use simple embeddings and never call an AI, so they run offline and cost nothing.
 

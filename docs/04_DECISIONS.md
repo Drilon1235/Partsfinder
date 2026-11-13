@@ -17,6 +17,17 @@ runs the AI on their own API key and pays Anthropic directly; Partsfinder never 
 encrypted by the operating system and only handed to the search engine on the same pc. Without a key every question
 is answered by the library's own checks, which settle most technical questions anyway.
 
+## The installer (13 Nov 2026)
+- **Everything in one installer, nothing to set up.** The search engine is bundled with PyInstaller (one folder,
+  CPU-only torch) and the embedding model `intfloat/multilingual-e5-small` (MIT) is shipped with it, so the app works
+  offline from the first start. The cost is a large download (about 1 GB); a Python install per user would cost far more
+  support.
+- **The installed app keeps its data in the user's own folder** (`%APPDATA%\Partsfinder`: library, uploads, saved
+  keys), never next to the program, so an update or reinstall never touches the library.
+- **Port 8731 for the installed app**, 8000 for the source version, so both can run on one pc.
+- **Built in the cloud, not on a developer's pc:** GitHub Actions builds the installer from a version tag and makes a
+  draft release; the end-to-end test runs on the installed app before anything is uploaded. Not code-signed yet.
+
 ## Choices made
 - **Python backend with FastAPI.** Other programs call it over HTTP; the app uses the same API.
 - **"All formats":** STEP/STL are analysed fully. Native formats (.sldprt, .f3d, .ipt, ...) can only be opened with

@@ -34,15 +34,21 @@ costs about a tenth of a cent). The key is stored encrypted by your operating sy
 engine on your own pc. Without a key everything works, with the library's own checks.
 
 ## Getting started (Windows)
+**With the installer:** download `Partsfinder-Setup-<version>.exe` from
+[Releases](https://github.com/Drilon1235/Partsfinder/releases) and run it. Everything is included: the app, the search
+engine and its language model, so it works offline from the first start. Your library and settings live in
+`%APPDATA%\Partsfinder`; uninstalling keeps them. The installer is not code-signed yet, so Windows SmartScreen may
+ask you to confirm (*More info → Run anyway*).
+
+**From the source:**
 1. Download this repository (green **Code** button → *Download ZIP*, or `git clone`).
 2. Double-click `setup_windows.bat`. It installs Python 3.12 if needed, creates a virtual environment, installs the
    packages and runs the tests (about 10 minutes the first time). The result is in `backend/setup_log.txt`.
-3. Double-click `app.bat`. The first time it installs Node.js and Electron (about 100 MB), then opens Partsfinder.
-4. Optional: open **Settings** (gear icon) and add your own Anthropic API key.
+3. Double-click `app.bat`. The first time it installs Node.js and the app's packages, then opens Partsfinder.
+
+Then, optional: open **Settings** (gear icon) and add your own Anthropic API key.
 
 On a Mac: `bash scripts/setup_mac.sh`, then `cd app && npm install && npm start`.
-
-A Windows installer and ready-made data packs are on the [roadmap](docs/01_ROADMAP.md).
 
 ### Filling the library
 This repository holds no CAD data. To start:
@@ -74,7 +80,10 @@ Only import data you are allowed to use. Partsfinder never downloads catalogues 
 cd backend
 .venv\Scripts\python -m pytest          # Windows  (Mac: .venv/bin/python -m pytest)
 python scripts/ui_screenshots.py         # every screen at 1440, 820 and 390 px (needs Playwright)
+cd ../app && npm run test:e2e           # the real app window against a small test library
 ```
+The Windows installer is built by GitHub Actions ([build.yml](.github/workflows/build.yml)) for every version tag;
+see [packaging/README.md](packaging/README.md) to build it yourself.
 See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately: [SECURITY.md](SECURITY.md).
 
 ## Licence

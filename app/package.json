@@ -9,9 +9,80 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:dir": "electron-builder --dir --publish never",
+    "test:e2e": "node test/e2e.js"
   },
   "devDependencies": {
-    "electron": "44.10.2"
+    "electron": "44.10.2",
+    "electron-builder": "^26.18.0",
+    "playwright-core": "^1.65.0"
+  },
+  "build": {
+    "appId": "be.dzitservices.partsfinder",
+    "productName": "Partsfinder",
+    "copyright": "Copyright (C) DZ IT Services",
+    "directories": {
+      "output": "../dist/app",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "rules.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist/partsfinder-backend",
+        "to": "backend"
+      },
+      {
+        "from": "../dist/model",
+        "to": "model"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "../NOTICE",
+        "to": "NOTICE.txt"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "../LICENSE",
+      "artifactName": "Partsfinder-Setup-${version}.exe",
+      "shortcutName": "Partsfinder",
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "category": "Engineering"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Drilon1235/Partsfinder.git"
   }
 }

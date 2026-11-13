@@ -38,3 +38,8 @@ graphify-out/
 
 # folders companies upload from their own pc (CAD files of any format, rules, JSON)
 data/companies/*/uploads/
+
+# packaging output (packaging/, electron-builder)
+/dist/
+/build/
+app/test-results/

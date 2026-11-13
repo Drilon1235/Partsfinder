@@ -2,6 +2,9 @@
 //
 // - Looks for the Python API at http://127.0.0.1:8000. If it is not running, the app starts
 //   it itself (backend/.venv) and stops it again on exit.
+// - Installed (app.isPackaged): the search engine is the bundled resources/backend/partsfinder-backend(.exe)
+//   on port 8731, with the library, uploads and settings in the user's own data folder
+//   (%APPDATA%\Partsfinder on Windows) and the bundled embedding model (resources/model), so it works offline.
 // - All HTTP traffic goes through this main process (IPC); the window itself has no access
 //   to Node or the file system.
 //
@@ -9,6 +12,7 @@
 //   PARTSFINDER_API_URL   other API, e.g. http://127.0.0.1:8765
 //   PARTSFINDER_NO_SPAWN  1 = never start a server yourself
 //   PARTSFINDER_API_KEY   key to sign in with (otherwise the app asks when the search engine needs one)
+//   PARTSFINDER_USER_DATA other folder for the app's own data (saved keys, and when installed the library)
 //
 // The AI runs on the user's own Anthropic API key (Settings). The app keeps it encrypted by the OS
 // (safeStorage, anthropic-key.bin in the app's data folder), never as plain text, and hands it to the
@@ -27,11 +31,39 @@ const rules = require('./rules');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const API = (process.env.PARTSFINDER_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const PACKAGED = app.isPackaged;
+if (process.env.PARTSFINDER_USER_DATA) app.setPath('userData', path.resolve(process.env.PARTSFINDER_USER_DATA));
+const API = (process.env.PARTSFINDER_API_URL || `http://127.0.0.1:${PACKAGED ? 8731 : 8000}`).replace(/\/$/, '');
 const BACKEND = path.resolve(__dirname, '..', 'backend');
 const PYTHON = process.platform === 'win32'
   ? path.join(BACKEND, '.venv', 'Scripts', 'python.exe')
   : path.join(BACKEND, '.venv', 'bin', 'python');
+const START_HINT = PACKAGED ? 'Close every Partsfinder window and start Partsfinder again.'
+  : 'Close api.bat (or every Partsfinder window) and start app.bat again.';
+
+// How to start the search engine: the bundled program when installed, backend/.venv when run from the source.
+function backendCommand(port) {
+  if (!PACKAGED) {
+    return { cmd: PYTHON, args: ['-m', 'partsfinder.api', '--port', port], cwd: BACKEND, env: {},
+             missing: 'Python environment not found. Run setup_windows.bat first.' };
+  }
+  const res = process.resourcesPath;
+  const data = app.getPath('userData');
+  const env = {
+    PARTSFINDER_DB_PATH: process.env.PARTSFINDER_DB_PATH || path.join(data, 'partsfinder.db'),
+    PARTSFINDER_DATA_DIR: process.env.PARTSFINDER_DATA_DIR || path.join(data, 'data'),
+    HF_HOME: process.env.HF_HOME || path.join(data, 'models'),
+  };
+  // the name keeps "e5": the search engine adds the prefixes that e5 models expect
+  const model = path.join(res, 'model', 'multilingual-e5-small');
+  if (!process.env.PARTSFINDER_EMBEDDING_MODEL && fs.existsSync(path.join(model, 'config.json'))) {
+    env.PARTSFINDER_EMBEDDING_MODEL = model;
+    env.HF_HUB_OFFLINE = '1';
+  }
+  const exe = path.join(res, 'backend', process.platform === 'win32' ? 'partsfinder-backend.exe' : 'partsfinder-backend');
+  return { cmd: exe, args: ['--port', port], cwd: data, env,
+           missing: 'The search engine is missing from this installation. Reinstall Partsfinder.' };
+}
 
 let win = null;
 let server = null;          // the Python process, if we started it
@@ -120,7 +152,7 @@ async function api(method, route, body, { timeoutMs = 180000 } = {}) {
       if (res.status === 404 && detail === 'Not Found') {
         // the route itself does not exist: an older search engine is still running (e.g. api.bat from before an update)
         return { ok: false, status: 404, error: 'The running search engine is an older version and does not know this yet. '
-          + 'Close api.bat (or every Partsfinder window) and start app.bat again.' };
+          + START_HINT };
       }
       if (res.status === 401 && !['/me', '/login', '/setup'].includes(route)) signedOut('Your sign-in has expired. Sign in again.');
       return { ok: false, status: res.status, error: detail };
@@ -181,18 +213,21 @@ async function ensureBackend() {
     setState('error', `No search engine at ${API}. Start api.bat first.`);
     return;
   }
-  if (!fs.existsSync(PYTHON)) {
-    setState('error', 'Python environment not found. Run setup_windows.bat first.');
+  const port = new URL(API).port || '8000';
+  const run = backendCommand(port);
+  if (!fs.existsSync(run.cmd)) {
+    setState('error', run.missing);
     return;
   }
   setState('starting', 'Starting the search engine and loading the AI model, this takes about 15 seconds...');
-  const port = new URL(API).port || '8000';
-  server = spawn(PYTHON, ['-m', 'partsfinder.api', '--port', port], {
-    cwd: BACKEND,
-    env: { ...process.env, PYTHONUTF8: '1', HF_HUB_DISABLE_SYMLINKS_WARNING: '1',
+  try { fs.mkdirSync(run.cwd, { recursive: true }); } catch { /* spawn reports it */ }
+  server = spawn(run.cmd, run.args, {
+    cwd: run.cwd,
+    env: { ...process.env, ...run.env, PYTHONUTF8: '1', HF_HUB_DISABLE_SYMLINKS_WARNING: '1',
            TRANSFORMERS_VERBOSITY: 'error', HF_HUB_DISABLE_PROGRESS_BARS: '1' },
     windowsHide: true,
   });
+  server.on('error', (err) => { server = null; setState('error', `The search engine could not start: ${err.message}`); });
   // only the last lines are ever shown (when it stops): keep the tail, not hours of output
   const keep = (d) => { serverLog = (serverLog + d).slice(-8000); };
   server.stdout.on('data', keep);

@@ -25,3 +25,14 @@ Data that the scripts can download or generate (not in this repository)
 - Dimensions of standard parts (ISO, DIN, EN) are facts from public standards; no standard text is copied.
 
 Python and Node.js packages are installed by the setup scripts from PyPI and npm, each under its own licence.
+
+Bundled in the Windows installer (not in this repository)
+---------------------------------------------------------
+- The embedding model intfloat/multilingual-e5-small (https://huggingface.co/intfloat/multilingual-e5-small):
+  MIT License, Copyright (c) Microsoft Corporation.
+- Electron and Chromium (MIT and their own licences, listed in the installed app's LICENSES.chromium.html).
+- The Python runtime and packages of the search engine, each under its own licence, among them: Python (PSF),
+  PyTorch (BSD-3-Clause), sentence-transformers and transformers (Apache-2.0), CadQuery and OCP / Open CASCADE
+  Technology (Apache-2.0 and LGPL-2.1 with exception; linked dynamically, the libraries are separate files that can be
+  replaced), FastAPI, Uvicorn, NumPy, trimesh, matplotlib and sqlite-vec (MIT/BSD-style). Their licence files are
+  inside the installed search engine (resources/backend).

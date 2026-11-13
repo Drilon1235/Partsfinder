@@ -35,8 +35,9 @@ Partsfinder is an open-source (AGPL-3.0) desktop app by DZ IT Services. Tick off
 - [x] `LICENSE` (AGPL-3.0), README, `CONTRIBUTING.md`, `SECURITY.md`, `NOTICE`
 - [x] Secret scan of the tree; new repository with a clean history
 - [ ] Make the repository public
-- [ ] Windows installer (electron-builder) with the Python engine included, and GitHub Releases
-- [ ] Electron end-to-end test in the repository
+- [x] Windows installer (electron-builder) with the Python engine and the language model included, built by
+      GitHub Actions; a version tag makes a draft GitHub Release
+- [x] Electron end-to-end test in the repository (from the source on every push, the installed app on every build)
 
 ## Phase P2 — A much larger library (open licences only)
 - [ ] Source, author and licence per part, shown in Details; licence filter

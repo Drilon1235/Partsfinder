@@ -1,0 +1,112 @@
+# Tests on every push; the Windows installer on a version tag (v0.1.0) or by hand (Actions > Build > Run workflow).
+# A tag also makes a draft GitHub Release with the installer: check it, then publish it on GitHub.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Python packages (CPU-only torch)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r backend/requirements.txt
+      - name: Backend tests
+        working-directory: backend
+        run: python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: App packages
+        working-directory: app
+        run: npm ci
+      - name: End-to-end test (app from the source)
+        working-directory: app
+        env:
+          PARTSFINDER_PYTHON: python
+        run: xvfb-run -a npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-failure
+          path: app/test-results/
+
+  windows:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $v = (Get-Content app/package.json | ConvertFrom-Json).version
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} but app/package.json says $v" }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Python packages (CPU-only torch)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r backend/requirements.txt -r packaging/requirements.txt
+      - name: Bundle the search engine
+        run: pyinstaller --noconfirm --distpath dist --workpath build/pyinstaller packaging/partsfinder-backend.spec
+      - name: Bundle the embedding model
+        run: python packaging/fetch_model.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Build the installer
+        working-directory: app
+        run: |
+          npm ci
+          npx electron-builder --win --publish never
+      - name: End-to-end test (the installed app with its own search engine)
+        working-directory: app
+        run: node test/e2e.js --packaged ../dist/app/win-unpacked/Partsfinder.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Partsfinder-Setup
+          path: dist/app/Partsfinder-Setup-*.exe
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-failure-windows
+          path: app/test-results/
+      - name: Draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $exe = Get-ChildItem dist/app/Partsfinder-Setup-*.exe | Select-Object -First 1
+          gh release create "${{ github.ref_name }}" $exe.FullName --draft --generate-notes --title "Partsfinder ${{ github.ref_name }}"
