@@ -541,6 +541,15 @@ def create_app(
         if request.state.scope not in (None, auth.ADMIN):
             raise HTTPException(403, "Only with an admin key")
 
+    def require_this_pc(request: Request, what: str) -> None:
+        """Settings of the pc that runs the search engine (the AI key, data packs): whoever sits at that pc, unless
+        signed in with a company account. Never from another pc."""
+        if not request.client or request.client.host not in LOCAL_ADDRESSES:
+            raise HTTPException(403, f"{what} can only be changed on the pc that runs the library")
+        if request.state.scope not in (None, auth.ADMIN, PUBLIC):
+            raise HTTPException(403, f"Signed in with a company account: {what.lower()} is changed by the "
+                                     "administrator or without signing in on this pc")
+
     def get_visible(part_id: str, company_id: str | None) -> Part:
         part = repo.get_part(part_id, company_id)
         if part is None:   # does not exist or belongs to another company: same answer
@@ -571,11 +580,9 @@ def create_app(
     @app.post("/settings/ai")
     def set_ai(body: AISettingsIn, request: Request) -> dict[str, Any]:
         """The app hands over the user's own Anthropic API key (kept in the OS keychain by the app).
-        Only from this pc and only for the admin (or the one-pc library). The key stays in memory:
-        never written to the database, a file or a log. An empty key switches the AI off."""
-        require_admin(request)
-        if not request.client or request.client.host not in LOCAL_ADDRESSES:
-            raise HTTPException(403, "The AI key can only be set from this pc")
+        Only on the pc of the search engine, by whoever sits there (not a company account). The key stays in
+        memory: never written to the database, a file or a log. An empty key switches the AI off."""
+        require_this_pc(request, "The AI key")
         key = (body.api_key or "").strip() or None
         if key is None:
             app.state.finder, app.state.ai_note = None, NO_KEY
@@ -1050,9 +1057,7 @@ def create_app(
     def install_pack(body: PackInstallIn, request: Request) -> dict[str, Any]:
         """Admin, on this pc: install a pack (folder or .zip on this pc) in the background; follow it with
         GET /ingest/{job_id}."""
-        require_admin(request)
-        if not request.client or request.client.host not in LOCAL_ADDRESSES:
-            raise HTTPException(403, "Data packs can only be installed on the pc of the search engine")
+        require_this_pc(request, "Data packs")
         src = Path(body.path).expanduser()
         if not src.exists():
             raise HTTPException(400, f"Not found: {src}")
@@ -1095,8 +1100,8 @@ def create_app(
 
     @app.post("/packs/{name}/remove")
     def remove_pack(name: str, request: Request) -> dict[str, Any]:
-        """Admin: remove an installed pack and exactly its parts."""
-        require_admin(request)
+        """On the pc of the search engine: remove an installed pack and exactly its parts."""
+        require_this_pc(request, "Data packs")
         with lock:
             try:
                 result = packs.remove(name, repo, s.data_dir, log=lambda _: None)

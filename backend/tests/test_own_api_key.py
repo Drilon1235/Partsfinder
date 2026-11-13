@@ -47,6 +47,15 @@ def test_only_the_admin_sets_the_key(tmp_path):
     assert ok.status_code == 200 and ok.json()["ai_available"] is True
 
 
+def test_the_owner_of_this_pc_sets_the_key_without_signing_in(tmp_path):
+    """A library with accounts (made for sharing): on the pc of the search engine the key needs no sign-in."""
+    c = _app(tmp_path)
+    assert c.post("/setup", json={"username": "drilon", "password": "a-long-password"}).status_code == 200
+    assert c.get("/health").json()["accounts"] is True
+    r = c.post("/settings/ai", json={"api_key": "sk-ant-test"})          # not signed in, on this pc
+    assert r.status_code == 200 and r.json()["ai_available"] is True
+
+
 def test_ai_off_stays_off_with_a_key(tmp_path):
     c = _app(tmp_path, ai_backend="off")
     assert c.post("/settings/ai", json={"api_key": "sk"}).status_code == 400

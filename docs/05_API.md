@@ -233,7 +233,7 @@ Imports all CAD files from a folder (a share such as `\\\\nas\\cad` works too). 
 
 **`"sync": true`**: also removes the parts of this folder whose file is gone or is now excluded, completely (see `POST /remove`). If no CAD file is found at all, or more than half of the folder's parts (and more than 20) would go, nothing is removed and `warnings` says why, unless `"allow_mass_removal": true`.
 
-## Data packs: `GET /packs`, `POST /packs/install` (admin, this pc), `POST /packs/{name}/remove` (admin)
+## Data packs: `GET /packs`, `POST /packs/install` and `POST /packs/{name}/remove` (on this pc, like the AI key)
 - `GET /packs` → `{"installed": [pack.json + installed_at, installed_parts]}`.
 - `POST /packs/install` `{"path": "C:/.../partsfinder-pack-kicad-3d-2026-11-13.zip"}` (a pack folder or .zip on the
   pc of the search engine; only from that pc) → `{"job_id"}`; follow it with `GET /ingest/{job_id}`: `progress`
@@ -311,8 +311,9 @@ In AI mode (`use_ai: true`) Claude gets a list of the filterable properties of t
 {"api_key": "sk-ant-..."}
 ```
 Hands the user's own Anthropic API key to the search engine (the app does this from Settings, and after every start).
-Only from this pc (**403** from another address) and only for the admin, or for the one-pc library without
-accounts and keys (**403** otherwise). The key is kept in memory only: never in the database, a file or a log, and
+Only on the pc that runs the search engine (**403** from another address), by whoever uses that pc: without
+signing in, or as the admin; a company account or company key gets **403**. (Who sits at that pc can change its
+settings anyway; accounts are for sharing the library with other pcs.) The key is kept in memory only: never in the database, a file or a log, and
 never sent back. An empty key switches the AI off. Response: `{"ai_available": true, "ai_model": "claude-haiku-5-5",
 "ai_note": null}`; **400** when the AI is switched off with `PARTSFINDER_AI_BACKEND=off`. Remembered answers are
 cleared, so the next question is answered with (or without) the AI.

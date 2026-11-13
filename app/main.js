@@ -113,7 +113,13 @@ function storeAiKey(key) {
   return 'stored';
 }
 
-function maySetAi() { return Boolean(who && (who.role === 'local' || who.role === 'admin')); }
+// settings of the pc that runs the search engine (AI key, data packs): whoever sits at that pc, unless signed in
+// with a company account; never from another pc
+const API_ON_THIS_PC = ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(API).hostname);
+function maySetAi() {
+  if (!who) return false;
+  return API_ON_THIS_PC && ['local', 'admin', 'public'].includes(who.role);
+}
 
 // after connecting: give the search engine the saved key (a key in backend/.env also works without the app)
 async function pushAiKey() {
@@ -472,7 +478,7 @@ ipcMain.handle('ai-settings', async () => {
     ai_available: Boolean(h.ok && h.data.ai_available), ai_model: h.ok ? h.data.ai_model : null, ai_note: h.ok ? h.data.ai_note : h.error } };
 });
 ipcMain.handle('ai-key-set', async (_e, key) => {
-  if (!maySetAi()) return { ok: false, error: 'Only the administrator can set the AI key.' };
+  if (!maySetAi()) return { ok: false, error: 'The AI key is set on the pc that runs the library (not with a company account).' };
   const k = typeof key === 'string' ? key.trim() : '';
   if (k.length > 300 || /\s/.test(k)) return { ok: false, error: 'That does not look like an API key.' };
   const r = await api('POST', '/settings/ai', { api_key: k || null });
@@ -647,7 +653,7 @@ ipcMain.handle('packs', () => api('GET', '/packs'));
 ipcMain.handle('pack-remove', (_e, name) => (typeof name === 'string' && /^[a-z0-9][a-z0-9-]{1,60}$/.test(name)
   ? api('POST', `/packs/${name}/remove`) : { ok: false, error: 'Invalid pack name.' }));
 ipcMain.handle('pack-install', async () => {
-  if (!maySetAi()) return { ok: false, error: 'Only the administrator of this library can install data packs.' };
+  if (!maySetAi()) return { ok: false, error: 'Data packs are installed on the pc that runs the library (not with a company account).' };
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: 'Choose a Partsfinder data pack (.zip)',
     filters: [{ name: 'Partsfinder data pack', extensions: ['zip'] }],

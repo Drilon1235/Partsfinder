@@ -2313,7 +2313,7 @@ async function openSettings(focusAbout = false) {
     el('h3', { text: 'AI with your own key' }),
     el('p', { class: 'panel-note', text: 'Partsfinder answers every question with its own checks first. With your own Anthropic API key it also understands vague questions, judges the parts its checks cannot settle, and searches with a photo. Anthropic bills your own account; a search costs about a tenth of a cent.' }),
     state,
-    d.may_set ? aiForm : el('p', { class: 'panel-note', text: 'Only the administrator of this library can set the AI key.' }),
+    d.may_set ? aiForm : el('p', { class: 'panel-note', text: 'The AI key is set on the pc that runs this library, by the person who uses that pc (not with a company account).' }),
     msg,
     el('p', { class: 'panel-note', text: 'Get a key at console.anthropic.com. The key is stored encrypted by your operating system and only handed to the search engine on this pc. Parts of companies marked “no AI” are never sent to the AI.' }));
   const packs = d.may_set ? await packsSection() : null;
