@@ -925,7 +925,8 @@ dialog::backdrop { background: rgba(9, 9, 11, .55); -webkit-backdrop-filter: blu
 .pack-list { display: grid; gap: 8px; margin: 10px 0 12px; padding: 0; list-style: none; }
 .pack-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px;
   border: 1px solid var(--line-2); border-radius: var(--r-l); background: var(--sunken); }
-.pack-row strong { display: block; }
+.pack-row strong { display: inline; }
+.pack-row > div > .panel-note { display: block; margin: 2px 0 0; }
 .card-origin[data-origin="kicad"], .card-origin[data-origin="adafruit"], .card-origin[data-origin="freecad"] {
   color: var(--text-2); }
 
@@ -934,3 +935,15 @@ details.reset { margin-top: 12px; }
 details.reset summary { cursor: pointer; color: var(--accent-text); }
 .reset-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 8px; }
 .reset-form input, .reset-form select { min-height: var(--h-m); }
+
+/* data packs: what each pack is, and the one to start with */
+.pack-row .pack-about { color: var(--text-2); }
+.pack-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pack-state { font-size: var(--fs-2); color: var(--ok); }
+.pack-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-1);
+  background: var(--accent-soft); color: var(--accent-text); vertical-align: 1px; }
+.empty-library { margin: 24px auto 0; padding: 16px 20px; border-radius: 12px; display: flex; gap: 16px; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; max-width: 720px; background: var(--surface);
+  border: 1px solid var(--line-2); text-align: left; }
+.empty-library p { margin: 0; flex: 1 1 320px; color: var(--text-2); }
+#packs, #about { scroll-margin-top: 110px; }

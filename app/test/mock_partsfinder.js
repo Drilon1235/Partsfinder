@@ -79,8 +79,14 @@
       { name: 'kicad-3d', title: 'KiCad 3D models (electronic components)', license: 'CC-BY-SA-4.0 WITH KiCad-libraries-exception', version: '2026-11-13', parts: 6189, installed_parts: 6189 }] }),
     packInstall: () => ok({ name: 'freecad-library', title: 'FreeCAD parts library', added: 2497, updated: 0 }),
     packRemove: (name) => ok({ name, removed: 6189 }),
+    packsAvailable: () => ok({ release: 'v0.2.1', packs: [
+      { name: 'standard-parts', title: 'Standard parts (ISO, DIN, ASME)', license: 'Apache-2.0', parts: 5834, size: 185926046, version: '2026-11-13', about: 'Bolts, nuts, washers, bearings, O-rings, retaining rings, keys, flanges and gears.', recommended: true, state: 'installed' },
+      { name: 'kicad-3d', title: 'KiCad 3D models (electronic components)', license: 'CC-BY-SA-4.0 WITH KiCad exception', parts: 6188, size: 77576347, version: '2026-11-13', about: 'SMD and through-hole packages, connectors, switches, crystals, LEDs.', recommended: false, state: 'update' },
+      { name: 'freecad-library', title: 'FreeCAD parts library', license: 'CC-BY-3.0', parts: 2489, size: 28520321, version: '2026-11-13', about: 'Steel profiles, fasteners, motors and machine parts.', recommended: false, state: 'new' },
+      { name: 'adafruit-cad-parts', title: 'Adafruit CAD parts', license: 'MIT', parts: 489, size: 7633191, version: '2026-11-13', about: 'Adafruit boards, breakouts and displays.', recommended: false, state: 'new' }] }),
+    packDownload: (name) => ok({ name, title: name, added: 2489, updated: 0 }),
     onPackProgress: () => {},
-    health: () => ok({ ai_available: true, image_search_available: true, parts: 1809,
+    health: () => ok({ ai_available: true, image_search_available: true, parts: window.__emptyLibrary ? 0 : 1809,
       ai_model: 'claude-haiku-5-5' }),
     companies: () => ok([{ id: 'janssen-engineering', name: 'Janssen Engineering', parts: 128, restricted_parts: 14, confidential: false, people: 2, groups: ['nuclear'] }, { id: 'verhoeven-machinebouw', name: 'Verhoeven Machinebouw', parts: 40, restricted_parts: 0, confidential: true, people: 1, groups: [] }]),
     search: (b) => {

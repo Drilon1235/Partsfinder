@@ -20,7 +20,9 @@ Especially:
 - The API listens only on this pc unless keys or accounts are set; it refuses a network address without them.
 - On this pc it answers only to 127.0.0.1 / localhost (no DNS rebinding) and refuses requests that a web page sends
   (an Origin other than its own address), so a website open in your browser cannot reach your library.
-- Data packs: files are only downloaded over https from the open libraries' hosts (also after a redirect), and a
+- Data packs are downloaded over https only from GitHub's release hosts and checked against the SHA-256 GitHub
+  publishes before they are installed.
+- Pack files: only downloaded over https from the open libraries' hosts (also after a redirect), and a
   pack is unpacked only when every path stays inside its folder.
 - Passwords are stored as scrypt hashes only; sessions expire; sign-in attempts are throttled.
 - The user's own AI key is stored encrypted by the operating system and kept in memory by the search engine,

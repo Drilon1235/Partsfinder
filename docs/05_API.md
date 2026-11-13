@@ -254,6 +254,17 @@ Imports all CAD files from a folder (a share such as `\\\\nas\\cad` works too). 
   `{"done", "total"}`, and when done `report` `{"name", "parts", "added", "updated", "unchanged", "duplicates",
   "failed", "errors"}`. Searching keeps working meanwhile; one import or install at a time (409 otherwise).
 - `POST /packs/{name}/remove` → `{"name", "removed"}`; 404 when the pack is not installed.
+- `GET /packs/available` (on this pc) → `{"release": "v0.2.2", "packs": [{"name", "title", "about", "license",
+  "parts", "size", "version", "file", "sha256", "recommended", "state", "installed_version"}]}`: the pack zips of the
+  newest published release on GitHub (`PARTSFINDER_PACKS_RELEASES`, a releases API URL, for a fork), asked at most
+  every 10 minutes. `state` is `new`, `update` (a newer version than installed) or `installed`. **502** with a plain
+  message when GitHub cannot be reached.
+- `POST /packs/download` `{"name": "standard-parts"}` (on this pc) → `{"job_id"}`: downloads the zip over https, only
+  from GitHub's release hosts (`api.github.com`, `github.com`, `objects.githubusercontent.com`,
+  `release-assets.githubusercontent.com`, also after a redirect), checks it against the SHA-256 GitHub publishes, keeps
+  it in `data/cache/packs/` (a second install needs no download) and installs it like `POST /packs/install`. Follow it
+  with `GET /ingest/{job_id}`: `phase` `download` (`progress` in bytes) then `install` (`progress` in parts).
+  404 for a name the release does not have; a wrong checksum or a broken download is an `error`, nothing is installed.
 - Parts from a pack have `source`, `source_ref` (the original file) and `license`. Their file can be an https URL at
   the original library: `GET /parts/{id}/file` and `/mesh` download it once (502 with a plain message when the
   internet is not reachable).
@@ -273,7 +284,7 @@ Removes every part of that library whose main file lies in that folder (the fold
 
 ## `GET /health`
 ```json
-{"status": "ok", "version": "0.2.1", "parts": 319, "embedder": "intfloat/multilingual-e5-small",
+{"status": "ok", "version": "0.2.2", "parts": 319, "embedder": "intfloat/multilingual-e5-small",
  "ai_available": true, "ai_model": "claude-haiku-5-5", "ai_note": null,
  "ai_spent_usd": 0.0123}
 ```

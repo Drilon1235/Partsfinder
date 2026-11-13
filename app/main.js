@@ -656,27 +656,41 @@ ipcMain.handle('pick-and-ingest', async (_e, companyId) => {
 ipcMain.handle('packs', () => api('GET', '/packs'));
 ipcMain.handle('pack-remove', (_e, name) => (typeof name === 'string' && /^[a-z0-9][a-z0-9-]{1,60}$/.test(name)
   ? api('POST', `/packs/${name}/remove`) : { ok: false, error: 'Invalid pack name.' }));
+const NOT_HERE = 'Data packs are installed on the pc that runs the library (not with a company account).';
+
+// follow a pack job (download and/or install) until it is done, sending its progress to the window
+async function followPackJob(start) {
+  if (!start.ok) return start;
+  const send = (p) => { if (win && !win.isDestroyed()) win.webContents.send('pack-progress', p); };
+  const deadline = Date.now() + 6 * 60 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const st = await api('GET', `/ingest/${start.data.job_id}`);
+    if (!st.ok) return st;
+    if (st.data.status === 'done') return { ok: true, data: st.data.report };
+    if (st.data.status === 'error') return { ok: false, status: 500, error: st.data.error };
+    send({ ...(st.data.progress || {}), phase: st.data.phase || 'install', last: st.data.log_tail.slice(-1)[0] || '' });
+  }
+  return { ok: false, status: 0, error: 'Installing takes too long (more than 6 hours).' };
+}
+
 ipcMain.handle('pack-install', async () => {
-  if (!maySetAi()) return { ok: false, error: 'Data packs are installed on the pc that runs the library (not with a company account).' };
+  if (!maySetAi()) return { ok: false, error: NOT_HERE };
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: 'Choose a Partsfinder data pack (.zip)',
     filters: [{ name: 'Partsfinder data pack', extensions: ['zip'] }],
     properties: ['openFile'],
   });
   if (canceled || !filePaths.length) return { ok: false, canceled: true };
-  const start = await api('POST', '/packs/install', { path: filePaths[0] });
-  if (!start.ok) return start;
-  const send = (p) => { if (win && !win.isDestroyed()) win.webContents.send('pack-progress', p); };
-  const deadline = Date.now() + 6 * 60 * 60 * 1000;
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 1500));
-    const st = await api('GET', `/ingest/${start.data.job_id}`);
-    if (!st.ok) return st;
-    if (st.data.status === 'done') return { ok: true, data: st.data.report };
-    if (st.data.status === 'error') return { ok: false, status: 500, error: st.data.error };
-    send({ ...(st.data.progress || {}), last: st.data.log_tail.slice(-1)[0] || '' });
-  }
-  return { ok: false, status: 0, error: 'Installing takes too long (more than 6 hours).' };
+  return followPackJob(await api('POST', '/packs/install', { path: filePaths[0] }));
+});
+
+// the packs of the newest release on GitHub, downloaded and installed in one click
+ipcMain.handle('packs-available', () => (maySetAi() ? api('GET', '/packs/available') : { ok: false, error: NOT_HERE }));
+ipcMain.handle('pack-download', async (_e, name) => {
+  if (!maySetAi()) return { ok: false, error: NOT_HERE };
+  if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9-]{1,60}$/.test(name)) return { ok: false, error: 'Invalid pack name.' };
+  return followPackJob(await api('POST', '/packs/download', { name }));
 });
 
 // ---- lifecycle ----------------------------------------------------------------------

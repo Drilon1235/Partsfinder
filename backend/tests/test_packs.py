@@ -189,3 +189,101 @@ def test_command_line_installs_with_the_library_model(tmp_path, monkeypatch):
     assert used == [("intfloat/multilingual-e5-small", get_settings().embedding_dim)]
     assert packs.main(["--db", str(db), "list"]) == 0
     assert packs.main(["--db", str(db), "remove", "test-pack"]) == 0
+
+
+# ---- downloading a pack of the newest release (catalogue.py) ------------------------------------------
+def _zip_of(folder):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for f in folder.rglob("*"):
+            if f.is_file():
+                z.write(f, f.relative_to(folder).as_posix())
+    return buf.getvalue()
+
+
+class _Resp(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        self.close()
+
+
+def _github(zip_bytes, digest=None, draft_first=True):
+    import hashlib
+    sha = digest or hashlib.sha256(zip_bytes).hexdigest()
+    releases = [
+        {"tag_name": "v9.0.0", "draft": True, "assets": [
+            {"name": "partsfinder-pack-test-pack-2027-01-01.zip", "size": 1, "browser_download_url": "https://github.com/x/draft"}]},
+        {"tag_name": "v0.3.0", "draft": False, "assets": [
+            {"name": "Partsfinder-Setup.exe", "size": 5, "browser_download_url": "https://github.com/x/setup"},
+            {"name": "partsfinder-pack-test-pack-2026-12-01.zip", "size": len(zip_bytes), "digest": f"sha256:{sha}",
+             "browser_download_url": "https://github.com/Drilon1235/Partsfinder/releases/download/v0.3.0/partsfinder-pack-test-pack-2026-12-01.zip"}]},
+    ][0 if draft_first else 1:]
+    calls = []
+
+    def opener(req, timeout=None):
+        calls.append(req.full_url)
+        if "api.github.com" in req.full_url:
+            return _Resp(json.dumps(releases).encode())
+        return _Resp(zip_bytes)
+    return opener, calls
+
+
+def test_catalogue_lists_the_newest_published_packs_and_checks_the_download(tmp_path):
+    from partsfinder import catalogue
+    data = _zip_of(make_pack(tmp_path / "src"))
+    opener, calls = _github(data)
+    found = catalogue.available(opener=opener)
+    assert found["release"] == "v0.3.0"                                    # the draft is skipped
+    [p] = found["packs"]
+    assert (p["name"], p["version"], p["size"]) == ("test-pack", "2026-12-01", len(data))
+    seen = []
+    path = catalogue.download(p, tmp_path / "cache", opener=opener, progress=lambda d, t: seen.append((d, t)))
+    assert path.read_bytes() == data and seen[-1] == (len(data), len(data))
+    n = len(calls)
+    catalogue.download(p, tmp_path / "cache", opener=opener)               # already there and correct: no download
+    assert len(calls) == n
+    bad, _ = _github(data, digest="0" * 64)
+    wrong = catalogue.available(opener=bad)["packs"][0]
+    with pytest.raises(catalogue.CatalogueError, match="checksum"):
+        catalogue.download(wrong, tmp_path / "cache2", opener=bad)
+    assert not list((tmp_path / "cache2").glob("*"))                       # nothing half-downloaded stays
+    with pytest.raises(catalogue.CatalogueError):
+        catalogue.download({**p, "url": "https://evil.example/pack.zip"}, tmp_path / "cache3", opener=opener)
+    with pytest.raises(catalogue.CatalogueError):
+        catalogue._GitHubOnly().redirect_request(None, None, 302, "Found", {}, "https://evil.example/x.zip")
+
+
+def test_api_downloads_and_installs_a_pack(tmp_path):
+    from partsfinder import catalogue
+    data = _zip_of(make_pack(tmp_path / "src", version="2026-12-01"))
+    opener, _ = _github(data)
+    c = _client(tmp_path)
+    c.app.state.catalogue_available = lambda: catalogue.available(opener=opener)
+    c.app.state.catalogue_download = lambda pack, folder, progress: catalogue.download(pack, folder, opener, progress)
+    listed = c.get("/packs/available").json()
+    assert listed["release"] == "v0.3.0"
+    assert [(p["name"], p["state"]) for p in listed["packs"]] == [("test-pack", "new")]
+    assert "url" not in listed["packs"][0]
+    job = c.post("/packs/download", json={"name": "test-pack"}).json()
+    for _ in range(200):
+        st = c.get(f"/ingest/{job['job_id']}").json()
+        if st["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert st["status"] == "done", st
+    assert st["report"]["added"] == 2
+    assert [(p["name"], p["state"]) for p in c.get("/packs/available").json()["packs"]] == [("test-pack", "installed")]
+    assert c.post("/packs/download", json={"name": "nope"}).status_code == 404
+
+
+def test_no_internet_gives_a_plain_answer(tmp_path):
+    from partsfinder import catalogue
+
+    def offline(req, timeout=None):
+        raise OSError("no network")
+    c = _client(tmp_path)
+    c.app.state.catalogue_available = lambda: catalogue.available(opener=offline)
+    r = c.get("/packs/available")
+    assert r.status_code == 502 and "could not be reached" in r.json()["detail"]

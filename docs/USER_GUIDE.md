@@ -66,8 +66,8 @@ On a result:
   the same kind with nearly the same size and volume).
 
 ## 5. Your own parts
-- **Data packs** (Settings → Data packs): thousands of openly licensed standard parts, electronics and profiles.
-  See [INSTALL.md](INSTALL.md#3-add-parts-the-data-packs).
+- **Data packs** (Settings → Data packs): thousands of openly licensed standard parts, electronics and profiles,
+  each installed with **Download and install**. See [INSTALL.md](INSTALL.md#3-add-parts-the-data-packs).
 - **Your own folders**: **Companies and people → General library → Import a folder**. Partsfinder reads STEP, STL and
   other CAD files and makes previews. A JSON file next to a CAD file adds a name, description and exact properties
   (thread, length, bearing number, ...) so they can be checked; see [03_DATAMODEL.md](03_DATAMODEL.md).

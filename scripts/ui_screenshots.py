@@ -30,6 +30,17 @@ async def ask(page, text: str) -> None:
 
 async def screens(page, shot) -> None:
     await shot("01-empty")
+    await page.evaluate("window.__emptyLibrary = true")      # a new installation: straight to the data packs
+    await page.evaluate("refreshHealth()")
+    await page.wait_for_timeout(200)
+    await shot("01b-empty-library")
+    await page.click("#empty-library button")
+    await page.wait_for_timeout(400)
+    await shot("01c-data-packs")
+    await page.keyboard.press("Escape")
+    await page.evaluate("window.__emptyLibrary = false")
+    await page.evaluate("refreshHealth()")
+    await page.wait_for_timeout(200)
     await ask(page, "M8x30 bolt 8.8")
     await shot("02-results")
     await page.click(".segmented button[data-mode=list]")

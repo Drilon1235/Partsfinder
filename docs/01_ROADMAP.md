@@ -59,7 +59,8 @@ Partsfinder is an open-source (MIT) desktop app by DZ IT Services. Tick off what
 - [ ] Licence filter in the filters panel
 - [ ] The newest KiCad models from GitLab, BOLTS collections, NopSCADlib vitamins (GPL-3), built by GitHub Actions
 - [x] Data packs as release downloads (the Assets of each release)
-- [ ] "Download" next to each pack in the app
+- [x] "Download and install" next to each pack in the app (newest release, checked against its SHA-256); an empty
+      library points straight to the data packs
 - [ ] Live sources on the user's own key: Nexar/Octopart, DigiKey, Mouser (price, stock, datasheet)
 - [ ] Benchmark from 26 to ~100 questions; measured before and after every source
 

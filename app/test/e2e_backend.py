@@ -54,6 +54,11 @@ def main() -> int:
 
     app = create_app(s)          # reads the library from the file, like the real app
     app.state.public_url = f"http://127.0.0.1:{port}"
+    # the list of downloadable packs without asking GitHub: the test runs offline
+    app.state.catalogue_available = lambda: {"release": "v9.9.9", "packs": [
+        {"name": "standard-parts", "title": "Standard parts (ISO, DIN, ASME)", "license": "Apache-2.0", "parts": 5834,
+         "size": 185926046, "version": "2026-11-13", "file": "partsfinder-pack-standard-parts-2026-11-13.zip",
+         "url": "https://github.com/x", "sha256": None, "about": "Bolts, nuts and bearings.", "recommended": True}]}
     print("e2e search engine ready", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
     return 0

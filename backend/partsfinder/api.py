@@ -69,7 +69,7 @@ from .ingest.pipeline import _rel, _under, ingest_folder, remove_folder, remove_
 from .ingest.rules import ACCESS_FILE, RuleError, parse_access
 from . import engineering
 from .mass import estimate_mass_g
-from . import packs, preview, remote
+from . import catalogue, packs, preview, remote
 from .models import Part
 from .repository import AccessError, Repository
 from .similar import find_duplicates, find_similar
@@ -220,6 +220,10 @@ class UploadFinishIn(BaseModel):
 
 class PackInstallIn(BaseModel):
     path: str = Field(min_length=1, max_length=1000)
+
+
+class PackDownloadIn(BaseModel):
+    name: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{1,60}$")
 
 
 class RemoveIn(BaseModel):
@@ -1114,21 +1118,14 @@ def create_app(
         with lock:
             return {"installed": packs.installed(repo)}
 
-    @app.post("/packs/install")
-    def install_pack(body: PackInstallIn, request: Request) -> dict[str, Any]:
-        """Admin, on this pc: install a pack (folder or .zip on this pc) in the background; follow it with
-        GET /ingest/{job_id}."""
-        require_this_pc(request, "Data packs")
-        src = Path(body.path).expanduser()
-        if not src.exists():
-            raise HTTPException(400, f"Not found: {src}")
-        actor = actor_of(request)
+    def start_pack_job(actor: str, label: str, work) -> dict[str, Any]:
+        """One pack job at a time in the background (download and/or install); follow it with /ingest/{id}."""
         with jobs_lock:
             if any(j["status"] == "running" for j in jobs.values()):
                 raise HTTPException(409, "An import is already running; try again when it is done")
             job_id = uuid.uuid4().hex[:12]
-            jobs[job_id] = {"job_id": job_id, "status": "running", "folder": str(src), "company_id": None,
-                            "lines": 0, "log_tail": [], "kind": "pack"}
+            jobs[job_id] = {"job_id": job_id, "status": "running", "folder": label, "company_id": None,
+                            "lines": 0, "log_tail": [], "kind": "pack", "phase": "install"}
 
         def go() -> None:
             job, job_conn = jobs[job_id], None
@@ -1143,6 +1140,8 @@ def create_app(
                 def progress(n: int, total: int) -> None:
                     job["progress"] = {"done": n, "total": total}
 
+                src = work(job, log, progress)
+                job["phase"], job["progress"] = "install", {"done": 0, "total": 0}
                 report = packs.install(src, job_repo, embedder, s.data_dir, log=log, progress=progress)
                 job_repo.audit(actor, None, "pack-install", report["name"],
                                f"{report['added']} added, {report['updated']} updated")
@@ -1151,13 +1150,69 @@ def create_app(
                 with answers_lock:
                     answers.clear()
             except Exception as exc:  # noqa: BLE001 - the job must never disappear silently
-                job["error"] = f"{type(exc).__name__}: {exc}"
+                job["error"] = str(exc) if isinstance(exc, (catalogue.CatalogueError, packs.PackError)) \
+                    else f"{type(exc).__name__}: {exc}"
                 job["status"] = "error"
             finally:
                 if job_conn is not None:
                     job_conn.close()
         threading.Thread(target=go, daemon=True, name=f"pack-{job_id}").start()
         return {"job_id": job_id, "status": "running"}
+
+    @app.post("/packs/install")
+    def install_pack(body: PackInstallIn, request: Request) -> dict[str, Any]:
+        """Admin, on this pc: install a pack (folder or .zip on this pc) in the background; follow it with
+        GET /ingest/{job_id}."""
+        require_this_pc(request, "Data packs")
+        src = Path(body.path).expanduser()
+        if not src.exists():
+            raise HTTPException(400, f"Not found: {src}")
+        return start_pack_job(actor_of(request), str(src), lambda job, log, progress: src)
+
+    catalogue_cache: dict[str, Any] = {}
+
+    def pack_catalogue() -> dict[str, Any]:
+        """The packs of the newest release (asked GitHub at most every 10 minutes)."""
+        if catalogue_cache.get("until", 0) < time.time():
+            try:
+                found = app.state.catalogue_available()
+            except catalogue.CatalogueError as exc:
+                raise HTTPException(502, str(exc)) from exc
+            catalogue_cache.update(data=found, until=time.time() + 600)
+        return catalogue_cache["data"]
+
+    app.state.catalogue_available = catalogue.available
+    app.state.catalogue_download = catalogue.download
+
+    @app.get("/packs/available")
+    def available_packs(request: Request) -> dict[str, Any]:
+        """On this pc: the packs you can download, each with what is installed of it now."""
+        require_this_pc(request, "Data packs")
+        found = pack_catalogue()
+        with lock:
+            have = {p["name"]: p for p in packs.installed(repo)}
+        out = []
+        for p in found["packs"]:
+            mine = have.get(p["name"])
+            state = "new" if not mine else ("installed" if str(mine.get("version")) >= p["version"] else "update")
+            out.append({**{k: v for k, v in p.items() if k != "url"}, "state": state,
+                        "installed_version": mine.get("version") if mine else None})
+        return {"release": found["release"], "packs": out}
+
+    @app.post("/packs/download")
+    def download_pack(body: PackDownloadIn, request: Request) -> dict[str, Any]:
+        """On this pc: download a pack of the newest release (checked against its SHA-256) and install it;
+        follow it with GET /ingest/{job_id} (phase "download", then "install")."""
+        require_this_pc(request, "Data packs")
+        pack = next((p for p in pack_catalogue()["packs"] if p["name"] == body.name), None)
+        if pack is None:
+            raise HTTPException(404, f"No data pack '{body.name}' in the newest release")
+
+        def work(job, log, progress):
+            job["phase"] = "download"
+            log(f"Downloading {pack['file']} ({pack['size'] / 1e6:.0f} MB)")
+            return app.state.catalogue_download(pack, s.data_dir / "cache" / "packs", progress=progress)
+        return start_pack_job(actor_of(request), pack["file"], work)
 
     @app.post("/packs/{name}/remove")
     def remove_pack(name: str, request: Request) -> dict[str, Any]:

@@ -38,11 +38,18 @@ thousands of openly licensed CAD models, ready to install.
 | `freecad-library` | ~2,500 parts of the FreeCAD library: steel profiles, fasteners, motors, machine parts | CC-BY 3.0 | 29 MB |
 | `adafruit-cad-parts` | ~490 Adafruit boards and modules | MIT | 8 MB |
 
-1. Download the packs you want from the **Assets** of the same
-   [release](https://github.com/Drilon1235/Partsfinder/releases/latest)
-   (`partsfinder-pack-<name>-<date>.zip`). Keep them as `.zip`; do not unpack them.
-2. In Partsfinder, click the **gear icon** (Settings) → **Data packs** → **Install a data pack…** and choose the zip.
-3. Wait until the progress bar is done (the standard parts take a few minutes). Repeat for the other packs.
+1. On an empty library Partsfinder shows **Add parts: data packs**; otherwise click the **gear icon** (Settings) →
+   **Data packs**.
+2. Click **Download and install** next to a pack. Start with the **standard parts** (marked *Start here*).
+3. Wait until it says it is done (the standard parts take a few minutes); you can keep searching meanwhile. Then add
+   the other packs you want the same way.
+
+Partsfinder downloads each pack from the newest release here on GitHub and checks it against its published checksum
+before installing. **Update** appears when a release has a newer version of a pack you have.
+
+*Without internet on that pc?* Download the zips (`partsfinder-pack-<name>-<date>.zip`) from the **Assets** of the
+[latest release](https://github.com/Drilon1235/Partsfinder/releases/latest) on another computer, copy them over, and use
+**Settings → Data packs → Install from a file…**. Keep them as `.zip`; do not unpack them.
 
 Each part keeps its own licence and a link to its original file; you see both in a part's **Details**. Installing a
 newer version of a pack updates its parts; **Remove** in the same list takes a pack out again.

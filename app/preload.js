@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('partsfinder', {
   setAiKey: (key) => ipcRenderer.invoke('ai-key-set', key),
   packs: () => ipcRenderer.invoke('packs'),
   packInstall: () => ipcRenderer.invoke('pack-install'),
+  packsAvailable: () => ipcRenderer.invoke('packs-available'),
+  packDownload: (name) => ipcRenderer.invoke('pack-download', name),
   packRemove: (name) => ipcRenderer.invoke('pack-remove', name),
   onPackProgress: (cb) => ipcRenderer.on('pack-progress', (_e, p) => cb(p)),
   companies: () => ipcRenderer.invoke('companies'),

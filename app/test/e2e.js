@@ -167,7 +167,8 @@ async function main() {
 
   await step('settings: the data packs section and the optional accounts', async () => {
     const text = await page.textContent('#settings[open] #packs');
-    if (!text.includes('Data packs') || !text.includes('Install a data pack')) throw new Error(text);
+    if (!text.includes('Data packs') || !text.includes('Install from a file')) throw new Error(text);
+    if (!packagedExe && (!text.includes('Standard parts (ISO, DIN, ASME)') || !text.includes('Download and install') || !text.includes('186 MB'))) throw new Error(text);
     const acc = await page.textContent('#settings[open] #accounts');
     if (!acc.includes('no default password')) throw new Error(acc);
   });

@@ -846,9 +846,23 @@ async function refreshHealth() {
   $('#image-btn').title = imageOk ? 'Search with a photo or drawing (or paste / drop an image)'
     : `Search by image needs the AI: ${h.ai_note || 'not available'}`;
   statusText.textContent = `${h.parts.toLocaleString('en')} parts`;
+  showEmptyLibrary(h.parts === 0);
   statusBox.title = h.ai_available ? `Search AI: ${modelName(h.ai_model)} on your API key`
     : `Search AI off: ${h.ai_note || 'unknown reason'}. The library's own checks answer every question.`;
   statusBox.dataset.state = h.ai_available ? 'ready' : 'limited';
+}
+
+// a new installation has an empty library: point straight at the free data packs
+function showEmptyLibrary(isEmpty) {
+  let card = $('#empty-library');
+  if (!isEmpty) { card?.remove(); return; }
+  if (card) return;
+  card = el('div', { id: 'empty-library', class: 'empty-library' },
+    el('p', {}, el('strong', { text: 'Your library is still empty. ' }),
+      'Start with the free data packs: thousands of standard parts, electronic components and profiles, installed in a click.'),
+    el('button', { class: 'btn btn-primary', type: 'button', text: 'Add parts: data packs',
+      onclick: () => openSettings('packs') }));
+  empty.append(card);
 }
 
 async function loadCompanies() {
@@ -2285,6 +2299,7 @@ const settingsDlg = $('#settings');
 const GITHUB = 'https://github.com/Drilon1235/Partsfinder';
 
 async function openSettings(focusAbout = false) {
+  const target = focusAbout === 'packs' ? 'packs' : (focusAbout ? 'about' : null);
   const [r, info] = await Promise.all([window.partsfinder.aiSettings(), window.partsfinder.appInfo()]);
   const d = r.ok ? r.data : { may_set: false, saved: false, ai_available: false, ai_note: r.error };
   const msg = el('p', { class: 'form-msg', role: 'alert', hidden: true });
@@ -2331,7 +2346,8 @@ async function openSettings(focusAbout = false) {
   settingsDlg.replaceChildren(panelHead('settings-title', 'Settings', 'Partsfinder', () => settingsDlg.close()),
     el('div', { class: 'panel-body' }, ai, packs, accounts, about));
   if (!settingsDlg.open) settingsDlg.showModal();
-  if (focusAbout) about.scrollIntoView({ block: 'start' });
+  if (target === 'about') about.scrollIntoView({ block: 'start' });
+  else if (target === 'packs' && packs) packs.scrollIntoView({ block: 'start' });
   else if (d.may_set) key.focus();
 }
 // accounts: optional, for sharing the library; made and repaired on the pc that runs it
@@ -2381,51 +2397,93 @@ async function accountsSection() {
 let packSay = null;
 let packProgressBound = false;
 // data packs: thousands of openly licensed parts (KiCad, FreeCAD, standard parts, ...) in the general library
+const MB = (bytes) => `${Math.max(1, Math.round(bytes / 1e6)).toLocaleString('en')} MB`;
+let packBusy = false;
+
 async function packsSection() {
-  const r = await window.partsfinder.packs();
-  const list = r.ok ? r.data.installed : [];
+  const [r, cat] = await Promise.all([window.partsfinder.packs(), window.partsfinder.packsAvailable()]);
+  const installed = r.ok ? r.data.installed : [];
+  const offered = cat.ok ? cat.data.packs : [];
   const msg = el('p', { class: 'form-msg', role: 'status', hidden: true });
   const say = (text, ok = false) => { msg.textContent = text; msg.hidden = !text; msg.dataset.ok = String(ok); };
-  const rows = list.length
-    ? el('ul', { class: 'plain pack-list' }, list.map((p) => el('li', { class: 'pack-row' },
-      el('div', {},
-        el('strong', { text: p.title || p.name }),
-        el('span', { class: 'panel-note', text: ` ${Number(p.installed_parts ?? p.parts).toLocaleString('en')} parts · ${p.license} · version ${p.version}` })),
-      el('button', { class: 'btn btn-ghost btn-small', type: 'button', text: 'Remove',
-        onclick: async (e) => {
-          if (!await askConfirm(`Remove ${p.title || p.name}?`, `This removes its ${Number(p.installed_parts ?? p.parts).toLocaleString('en')} parts from the general library. You can install the pack again later.`, 'Remove')) return;
-          e.target.disabled = true;
-          const res = await window.partsfinder.packRemove(p.name);
-          if (!res.ok) { say(res.error); e.target.disabled = false; return; }
-          toast(`${res.data.removed.toLocaleString('en')} parts removed.`, true);
-          await refreshHealth();
-          await openSettings();
-        } }))))
-    : el('p', { class: 'panel-note', text: r.ok ? 'No data packs installed yet.' : r.error });
-  const install = el('button', { class: 'btn btn-primary', type: 'button', text: 'Install a data pack…',
-    onclick: async () => {
-      install.disabled = true;
-      say('Installing… the search keeps working meanwhile.', true);
-      const res = await window.partsfinder.packInstall();
-      install.disabled = false;
-      if (res.canceled) { say(''); return; }
-      if (!res.ok) { say(res.error); return; }
-      const d = res.data;
-      toast(`${d.title || d.name}: ${d.added.toLocaleString('en')} parts added, ${d.updated.toLocaleString('en')} updated.`, true);
+  const done = async (d) => {
+    toast(`${d.title || d.name}: ${d.added.toLocaleString('en')} parts added, ${d.updated.toLocaleString('en')} updated.`, true);
+    packBusy = false;
+    await refreshHealth();
+    await openSettings('packs');
+  };
+  // one job at a time: every button waits while a pack downloads or installs
+  const run = async (button, label, job) => {
+    if (packBusy) return;
+    packBusy = true;
+    section.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    button.textContent = label;
+    say(`${label} The search keeps working meanwhile.`, true);
+    const res = await job();
+    if (res.ok) { await done(res.data); return; }
+    packBusy = false;
+    section.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    if (res.canceled) { say(''); await openSettings('packs'); return; }
+    say(res.error);
+  };
+  const removeBtn = (p) => el('button', { class: 'btn btn-ghost btn-small', type: 'button', text: 'Remove',
+    onclick: async (e) => {
+      const n = Number(p.installed_parts ?? p.parts).toLocaleString('en');
+      if (!await askConfirm(`Remove ${p.title || p.name}?`, `This removes its ${n} parts from the general library. You can install the pack again later.`, 'Remove')) return;
+      e.target.disabled = true;
+      const res = await window.partsfinder.packRemove(p.name);
+      if (!res.ok) { say(res.error); e.target.disabled = false; return; }
+      toast(`${res.data.removed.toLocaleString('en')} parts removed.`, true);
       await refreshHealth();
-      await openSettings();
+      await openSettings('packs');
     } });
+  const have = Object.fromEntries(installed.map((p) => [p.name, p]));
+  const rows = offered.map((o) => {
+    const mine = have[o.name];
+    const facts = `${Number(mine ? (mine.installed_parts ?? mine.parts) : o.parts).toLocaleString('en')} parts · ${o.license} · ${MB(o.size)}`;
+    const action = o.state === 'installed' ? el('span', { class: 'pack-state', text: 'Installed' })
+      : el('button', { class: `btn ${o.recommended || o.state === 'update' ? 'btn-primary' : ''} btn-small`, type: 'button',
+        text: o.state === 'update' ? 'Update' : 'Download and install',
+        onclick: (e) => run(e.target, o.state === 'update' ? 'Updating…' : 'Downloading…',
+          () => window.partsfinder.packDownload(o.name)) });
+    return el('li', { class: 'pack-row', 'data-pack': o.name },
+      el('div', {},
+        el('strong', { text: o.title }),
+        o.recommended && o.state === 'new' ? el('span', { class: 'pack-tag', text: 'Start here' }) : null,
+        el('span', { class: 'panel-note pack-about', text: o.about }),
+        el('span', { class: 'panel-note', text: facts })),
+      el('div', { class: 'pack-actions' }, action, mine ? removeBtn(mine) : null));
+  });
+  // packs installed from a file that the release does not offer
+  const offeredNames = new Set(offered.map((o) => o.name));
+  for (const p of installed.filter((x) => !offeredNames.has(x.name))) {
+    rows.push(el('li', { class: 'pack-row', 'data-pack': p.name },
+      el('div', {}, el('strong', { text: p.title || p.name }),
+        el('span', { class: 'panel-note', text: ` ${Number(p.installed_parts ?? p.parts).toLocaleString('en')} parts · ${p.license} · version ${p.version}` })),
+      el('div', { class: 'pack-actions' }, el('span', { class: 'pack-state', text: 'Installed' }), removeBtn(p))));
+  }
+  const list = rows.length ? el('ul', { class: 'plain pack-list' }, rows)
+    : el('p', { class: 'panel-note', text: 'No data packs installed yet.' });
+  const offline = cat.ok ? null : el('p', { class: 'panel-note' },
+    `The list of packs could not be loaded: ${cat.error} You can also download a pack from the `,
+    el('a', { href: 'https://github.com/Drilon1235/Partsfinder/releases/latest', target: '_blank', rel: 'noopener', text: 'releases page' }),
+    ' and install it from the file.');
+  const fromFile = el('button', { class: 'btn btn-ghost', type: 'button', text: 'Install from a file…',
+    onclick: (e) => run(e.target, 'Installing…', () => window.partsfinder.packInstall()) });
   packSay = say;
   if (!packProgressBound) {
     packProgressBound = true;
     window.partsfinder.onPackProgress?.((p) => {
-      if (p.total && packSay) packSay(`Installing… ${p.done.toLocaleString('en')} of ${p.total.toLocaleString('en')} parts.`, true);
+      if (!packSay || !p.total) return;
+      if (p.phase === 'download') packSay(`Downloading… ${MB(p.done)} of ${MB(p.total)}.`, true);
+      else packSay(`Installing… ${p.done.toLocaleString('en')} of ${p.total.toLocaleString('en')} parts.`, true);
     });
   }
-  return el('section', { class: 'settings-section', id: 'packs' },
+  const section = el('section', { class: 'settings-section', id: 'packs' },
     el('h3', { text: 'Data packs' }),
-    el('p', { class: 'panel-note', text: 'Open libraries of ready-made parts for the general library: standard parts, electronic components and more, each under its own open licence. Every part shows its licence and links to its original file.' }),
-    rows, el('div', { class: 'inline-form' }, install), msg);
+    el('p', { class: 'panel-note', text: 'Free libraries of ready-made parts for the general library, each under its own open licence. Every part shows its licence and links to its original file. Downloaded from the Partsfinder releases on GitHub and checked before installing.' }),
+    list, offline, el('div', { class: 'inline-form' }, fromFile), msg);
+  return section;
 }
 
 $('#settings-btn').addEventListener('click', () => openSettings());

@@ -2,7 +2,7 @@ Partsfinder finds an existing CAD part before you draw a new one: ask in plain w
 
 ## Download
 1. **`Partsfinder-Setup.exe`** below (the same installer as `Partsfinder-Setup-<version>.exe`): the app for Windows 10/11 (64-bit), with its search engine and language model included. Windows SmartScreen may ask you to confirm (*More info → Run anyway*): the installer is not code-signed yet.
-2. Optional, the **data packs** below (keep them as `.zip`): in the app, **Settings → Data packs → Install a data pack…**
+2. In the app, **Settings → Data packs → Download and install** adds thousands of free parts in a click (or download a pack zip below and use **Install from a file…**).
 3. Optional, your own Anthropic API key in **Settings → AI with your own key**. Everything works without it.
 
 Step by step: **[Download and install](https://github.com/Drilon1235/Partsfinder/blob/main/docs/INSTALL.md)** · **[User guide](https://github.com/Drilon1235/Partsfinder/blob/main/docs/USER_GUIDE.md)**
@@ -18,6 +18,7 @@ Step by step: **[Download and install](https://github.com/Drilon1235/Partsfinder
 Every part keeps its source, author and licence (shown in Details, with a link to the original file).
 
 ## What is new
+- **Data packs in one click**: Settings → Data packs downloads and installs a pack from the newest release, checked against its checksum; a new, empty library points straight there.
 - **MIT licence** (was AGPL-3.0): everyone may use, change and redistribute Partsfinder, also commercially.
 - A **Download for Windows** button on the project page that always gets the newest installer.
 - **No account needed** on your own pc; accounts are optional, for sharing a library on your network. Forgot the administrator password? Reset it on the pc that holds the library.
