@@ -7,6 +7,15 @@
 
 <p align="center"><b>Find an existing CAD part before you draw a new one.</b></p>
 
+<p align="center">
+  <a href="https://github.com/Drilon1235/Partsfinder/releases/latest/download/Partsfinder-Setup.exe"><img src="https://img.shields.io/badge/Download%20for%20Windows-Partsfinder%20installer-0b2545?style=for-the-badge&logo=windows&logoColor=white" alt="Download Partsfinder for Windows"></a>
+</p>
+<p align="center">
+  Windows 10/11, 64-bit · free and open source ·
+  <a href="https://github.com/Drilon1235/Partsfinder/releases/latest">data packs and all downloads</a> ·
+  <a href="docs/INSTALL.md">how to install</a> · <a href="docs/USER_GUIDE.md">user guide</a>
+</p>
+
 Partsfinder is a parts library you search in plain language. Ask for *"M8x30 bolt 8.8"*, *"bearing 6205-2RS"*,
 *"bracket that holds 50 kg"* or *"1 M8 bolt and 1 Arduino"*, drop in a photo or your own STEP file, and it shows the
 existing models that fit, with every requirement checked against the part's own data. When nothing fits, it says so

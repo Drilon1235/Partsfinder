@@ -11,11 +11,14 @@ You do not need Python, a terminal or any `.bat` file (those are only for develo
 - On a Mac there is no installer yet; see [From the source code](#from-the-source-code-developers).
 
 ## 1. Download the installer
-1. Go to the **[latest release](https://github.com/Drilon1235/Partsfinder/releases/latest)**.
-2. Under **Assets**, click **`Partsfinder-Setup-<version>.exe`** to download it.
+Click **[Download Partsfinder for Windows](https://github.com/Drilon1235/Partsfinder/releases/latest/download/Partsfinder-Setup.exe)**:
+it always downloads the newest version (`Partsfinder-Setup.exe`).
+
+Or go to the **[latest release](https://github.com/Drilon1235/Partsfinder/releases/latest)** and, under **Assets**, click
+**`Partsfinder-Setup-<version>.exe`** (the same installer, with the version in its name).
 
 ## 2. Install
-1. Double-click the downloaded `Partsfinder-Setup-<version>.exe`.
+1. Double-click the downloaded `Partsfinder-Setup.exe`.
 2. **Windows SmartScreen** may say *"Windows protected your PC"*, because the installer is not code-signed yet.
    Click **More info → Run anyway**. (Only do this for an installer you downloaded from the release page above.)
 3. Accept the licence (GNU AGPL v3), choose where to install it (the default is fine) and click **Install**.

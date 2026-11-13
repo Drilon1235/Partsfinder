@@ -6,7 +6,8 @@ GitHub Actions builds the installer ([../.github/workflows/build.yml](../.github
   `Partsfinder-Setup-<version>.exe`, runs the end-to-end test on the installed app, and for a tag:
   - when a **draft release for that tag already exists** (prepared by the maintainer with the release notes and the
     data pack zips as assets), it adds the tested installer, writes its SHA-256 where the notes say
-    `<!-- installer -->`, and **publishes** the release;
+    `<!-- installer -->`, and **publishes** the release; `download-link.yml` then adds the same installer as
+    `Partsfinder-Setup.exe`, so the README button (`releases/latest/download/Partsfinder-Setup.exe`) always works;
   - otherwise it makes a new draft release with generated notes; check it, then publish it on GitHub.
 
 ## Build it yourself (Windows, from the repository folder)
