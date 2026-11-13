@@ -288,6 +288,14 @@ People sign in with a name and a password (docs/10_COMPANY_LIBRARIES.md). The an
 `DELETE /companies/{id}` (admin) → `{"removed_parts", "removed_accounts"}`: every part of the company completely (search entries, previews, 3D caches, feedback), its accounts and their sessions, its folder settings and the folders it uploaded. Files it was imported from elsewhere (a share) are not touched. **409** while an import for it runs.
 Admin only: `GET /users?company_id=` (never a password hash), `POST /users` `{"username", "password", "role": "company" | "admin", "company_id", "groups": []}` (a new company id makes the company), `PATCH /users/{username}` `{"password"?, "disabled"?, "groups"?}` (a new password or disabling ends every session of that account), `DELETE /users/{username}`. The last admin account cannot be disabled or removed (**400**). After removing an account or changing a password the write-ahead log is emptied into the database (`wal_checkpoint(TRUNCATE)`, also at every start), so no old copy of the account or its password hash stays behind in a file (freed pages are wiped by `secure_delete`). Passwords: at least 8 characters; usernames 3-40 characters (letters, digits, `.`, `_`, `-`).
 
+## Forgot the administrator password: `GET /setup/admins`, `POST /setup/reset` (on this pc)
+On the pc that runs the library, whoever sits there (not signed in, or as an admin; never a company account, never
+from another pc: **403**) can see the administrator accounts (`{"admins": [{"username", "disabled"}]}`) and give one
+a new password: `POST /setup/reset` `{"username", "password", "remember"}`. The account is enabled again, every
+other session of it ends, earlier failed tries no longer count, and the answer signs in like `/login`
+(`{"token", "me"}`). **404** for a name that is not an administrator, **400** for a password under 8 characters.
+Logged in the audit log as "admin password reset on this pc".
+
 ## `GET /me`
 Who this request belongs to (key or signed-in account). Never returns a key or token:
 `{"keys_required": false, "username": "anna", "role": "company", "company_id": "acme", "groups": ["nuclear"], "key": null}`. `role` is `company`, `admin` (`company_id` null), `public` (not signed in on a library with accounts), or `local` (no keys or accounts: `groups` = `PARTSFINDER_LOCAL_GROUPS`). `key` is the key's fingerprint when an API key was used, `username` when an account signed in.

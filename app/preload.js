@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('partsfinder', {
   signOut: () => ipcRenderer.invoke('sign-out'),
   login: (username, password, remember) => ipcRenderer.invoke('login', username, password, remember),
   setup: (username, password, remember) => ipcRenderer.invoke('setup', username, password, remember),
+  admins: () => ipcRenderer.invoke('admins'),
+  adminReset: (username, password, remember) => ipcRenderer.invoke('admin-reset', username, password, remember),
   authInfo: () => ipcRenderer.invoke('auth-info'),
   users: () => ipcRenderer.invoke('users'),
   userCreate: (body) => ipcRenderer.invoke('user-create', body),

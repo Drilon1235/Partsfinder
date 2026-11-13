@@ -72,6 +72,8 @@
     aiSettings: () => ok({ may_set: true, saved: false, encrypted: true, ai_available: false, ai_model: null,
       ai_note: 'No API key: add your own Anthropic API key in Settings (or ANTHROPIC_API_KEY in backend/.env)' }),
     setAiKey: (key) => ok({ ai_available: Boolean(key), ai_model: 'claude-haiku-5-5', stored: 'stored' }),
+    admins: () => ok({ admins: [{ username: 'drilon', disabled: false }] }),
+    adminReset: (u) => ok({ username: u, role: 'admin', company_id: null, groups: [] }),
     packs: () => ok({ installed: [
       { name: 'standard-parts', title: 'Standard parts (ISO, DIN, ASME)', license: 'Apache-2.0', version: '2026-11-13', parts: 6213, installed_parts: 6213 },
       { name: 'kicad-3d', title: 'KiCad 3D models (electronic components)', license: 'CC-BY-SA-4.0 WITH KiCad-libraries-exception', version: '2026-11-13', parts: 6189, installed_parts: 6189 }] }),

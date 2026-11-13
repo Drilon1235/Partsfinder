@@ -421,3 +421,37 @@ def test_a_removed_account_or_old_password_leaves_no_trace_in_the_database_files
         wal = tmp / "lib.db-wal"
         return (tmp / "lib.db").read_bytes() + (wal.read_bytes() if wal.exists() else b"")
     assert salt_and_hash not in raw() and newer not in raw()     # (the log keeps the name, never a password)
+
+
+# ---- forgot the administrator password ------------------------------------------------------------------
+def test_on_this_pc_the_admin_password_can_be_reset(lib):
+    app, conn, _ = lib
+    c = TestClient(app)
+    old = admin(c)
+    company_user(c, old)
+    for _ in range(5):                                         # locked out by wrong tries
+        c.post("/login", json={"username": "DrilonTest", "password": "wrong one!"})
+    assert c.get("/setup/admins").json() == {"admins": [{"username": "DrilonTest", "disabled": False}]}
+    r = c.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"})
+    assert r.status_code == 200 and r.json()["me"]["role"] == "admin"
+    assert c.get("/me", headers=bearer(r.json()["token"])).json()["role"] == "admin"
+    assert c.get("/me", headers=bearer(old)).status_code == 401              # the old session is gone
+    assert c.post("/login", json={"username": "DrilonTest", "password": "a new password 2"}).status_code == 200
+    assert c.post("/login", json={"username": "DrilonTest", "password": PASSWORD}).status_code == 401
+    assert "a new password 2" not in "\n".join(conn.iterdump())
+
+
+def test_the_reset_is_only_for_admins_on_this_pc(lib):
+    app, _, _ = lib
+    c = TestClient(app)
+    token = admin(c)
+    anna = company_user(c, token)
+    assert c.post("/setup/reset", json={"username": "anna", "password": "a new password 2"}).status_code == 404
+    assert c.post("/setup/reset", json={"username": "nobody", "password": "a new password 2"}).status_code == 404
+    assert c.post("/setup/reset", json={"username": "DrilonTest", "password": "short"}).status_code == 400
+    assert c.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"},
+                  headers=bearer(anna)).status_code == 403                     # a company account
+    assert c.get("/setup/admins", headers=bearer(anna)).status_code == 403
+    far = TestClient(app, client=("10.0.0.7", 50000))
+    assert far.post("/setup/reset", json={"username": "DrilonTest", "password": "a new password 2"}).status_code == 403
+    assert far.get("/setup/admins").status_code == 403

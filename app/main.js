@@ -323,6 +323,10 @@ async function signInWith(route, username, password, remember) {
 }
 ipcMain.handle('login', (_e, username, password, remember) => signInWith('/login', username, password, remember));
 ipcMain.handle('setup', (_e, username, password, remember) => signInWith('/setup', username, password, remember));
+ipcMain.handle('admins', () => (maySetAi() ? api('GET', '/setup/admins') : { ok: false, error: 'Only on the pc that runs the library.' }));
+ipcMain.handle('admin-reset', (_e, username, password, remember) => (maySetAi()
+  ? signInWith('/setup/reset', username, password, remember)
+  : { ok: false, error: 'An administrator password can only be reset on the pc that runs the library.' }));
 ipcMain.handle('auth-info', async () => {
   const h = await api('GET', '/health', null, { timeoutMs: 5000 });
   if (h.ok) authInfo = { accounts: Boolean(h.data.accounts), setup_needed: Boolean(h.data.setup_needed),

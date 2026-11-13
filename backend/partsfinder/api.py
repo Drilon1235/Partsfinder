@@ -636,6 +636,33 @@ def create_app(
         log(request, None, "account", user["username"], "first admin created")
         return signed_in(request, token, user)
 
+    @app.get("/setup/admins")
+    def setup_admins(request: Request) -> dict[str, Any]:
+        """On the pc that runs the library: the administrator accounts (names only), for the reset below."""
+        require_this_pc(request, "The administrator accounts")
+        with lock:
+            admins = [{"username": u["username"], "disabled": u["disabled"]}
+                      for u in accounts.list() if u["role"] == "admin"]
+        return {"admins": admins}
+
+    @app.post("/setup/reset")
+    def setup_reset(body: LoginIn, request: Request) -> dict[str, Any]:
+        """Forgot the administrator's password: on the pc that runs the library, whoever sits there gives an
+        administrator account a new password (and enables it again), then is signed in with it. Never from
+        another pc: there, only an administrator can give a new password (PATCH /users)."""
+        require_this_pc(request, "The administrator password")
+
+        def reset():
+            user = accounts.get(body.username.strip())
+            if user is None or user["role"] != "admin":
+                raise HTTPException(404, "No administrator account with that name")
+            accounts.update(user["username"], password=body.password, disabled=False)
+            accounts.throttle.clear(user["username"])          # earlier failed tries no longer count
+            return accounts.new_session(user["username"], body.remember), accounts.get(user["username"])
+        token, user = account_do(reset)
+        log(request, None, "account", user["username"], "admin password reset on this pc")
+        return signed_in(request, token, user)
+
     @app.post("/login")
     def login(body: LoginIn, request: Request) -> dict[str, Any]:
         try:

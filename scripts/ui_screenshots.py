@@ -129,6 +129,13 @@ async def ask_ai(page, shot) -> None:
 
 async def sign_in(page, shot) -> None:
     await shot("11-not-signed-in")
+    await page.click("#settings-btn")                      # accounts exist: who the admin is, and the reset
+    await page.wait_for_timeout(300)
+    await page.evaluate("document.querySelector('#accounts').scrollIntoView()")
+    await page.click("#accounts summary")
+    await page.wait_for_timeout(150)
+    await shot("11b-settings-accounts-exist")
+    await page.keyboard.press("Escape")
     await page.click("#signin-btn")
     await page.fill("#signin-user", "anna")
     await page.fill("#signin-pass", "wrong")

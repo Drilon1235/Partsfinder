@@ -2317,12 +2317,7 @@ async function openSettings(focusAbout = false) {
     msg,
     el('p', { class: 'panel-note', text: 'Get a key at console.anthropic.com. The key is stored encrypted by your operating system and only handed to the search engine on this pc. Parts of companies marked “no AI” are never sent to the AI.' }));
   const packs = d.may_set ? await packsSection() : null;
-  const accounts = auth.setup_needed && !auth.accounts ? el('section', { class: 'settings-section', id: 'accounts' },
-    el('h3', { text: 'Accounts (optional)' }),
-    el('p', { class: 'panel-note', text: 'On your own pc you need no account: everything works without signing in. Accounts are for sharing this library with other people on your network, each with their own company library and groups.' }),
-    el('p', { class: 'panel-note', text: 'The first account is the administrator. You choose its name and password; there is no default password. The accounts are stored only in the library on this pc.' }),
-    el('div', { class: 'inline-form' }, el('button', { class: 'btn', type: 'button', text: 'Create the administrator account',
-      onclick: () => { settingsDlg.close(); showSignIn('admin'); } }))) : null;
+  const accounts = d.may_set ? await accountsSection() : null;
   const about = el('section', { class: 'settings-section about', id: 'about' },
     el('div', { class: 'about-head' },
       el('img', { src: 'img/partsfinder-icon.svg', alt: '', width: '56', height: '56' }),
@@ -2339,6 +2334,50 @@ async function openSettings(focusAbout = false) {
   if (focusAbout) about.scrollIntoView({ block: 'start' });
   else if (d.may_set) key.focus();
 }
+// accounts: optional, for sharing the library; made and repaired on the pc that runs it
+async function accountsSection() {
+  const intro = el('p', { class: 'panel-note', text: 'On your own pc you need no account: everything works without signing in. Accounts are for sharing this library with other people on your network, each with their own company library and groups.' });
+  if (!auth.accounts) {
+    return el('section', { class: 'settings-section', id: 'accounts' },
+      el('h3', { text: 'Accounts (optional)' }), intro,
+      el('p', { class: 'panel-note', text: 'The first account is the administrator. You choose its name and password; there is no default password. The accounts are stored only in the library on this pc.' }),
+      el('div', { class: 'inline-form' }, el('button', { class: 'btn', type: 'button', text: 'Create the administrator account',
+        onclick: () => { settingsDlg.close(); showSignIn('admin'); } })));
+  }
+  const r = await window.partsfinder.admins();
+  const admins = r.ok ? r.data.admins : [];
+  const names = admins.map((a) => a.username + (a.disabled ? ' (disabled)' : ''));
+  const signedInAdmin = who.role === 'admin';
+  const msg = el('p', { class: 'form-msg', role: 'alert', hidden: true });
+  const say = (text, ok = false) => { msg.textContent = text; msg.hidden = !text; msg.dataset.ok = String(ok); };
+  const user = admins.length > 1
+    ? el('select', { 'aria-label': 'Administrator account' }, admins.map((a) => el('option', { value: a.username, text: a.username })))
+    : el('input', { type: 'text', value: admins[0]?.username || '', readonly: true, 'aria-label': 'Administrator account' });
+  const pass = el('input', { type: 'password', autocomplete: 'new-password', placeholder: 'New password', 'aria-label': 'New password' });
+  const pass2 = el('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Repeat it', 'aria-label': 'Repeat the new password' });
+  const reset = el('form', { class: 'reset-form', novalidate: true, onsubmit: async (e) => {
+    e.preventDefault();
+    if (pass.value.length < 8) { say('Choose a password of at least 8 characters.'); pass.focus(); return; }
+    if (pass.value !== pass2.value) { say('The two passwords are not the same.'); pass2.focus(); return; }
+    const res = await window.partsfinder.adminReset(user.value, pass.value, false);
+    if (!res.ok) { say(res.error); return; }
+    toast(`New password set. You are signed in as ${user.value}.`, true);
+    await new Promise((done) => setTimeout(done, 300));       // the app picks up the new sign-in first
+    await openSettings();
+  } }, user, pass, pass2, el('button', { class: 'btn', type: 'submit', text: 'Set the new password' }));
+  return el('section', { class: 'settings-section', id: 'accounts' },
+    el('h3', { text: 'Accounts' }), intro,
+    el('p', { class: 'panel-note', text: admins.length
+      ? `There already is an administrator account: ${names.join(', ')}. Only one person makes the first account; more administrators are added under “Companies and people”.`
+      : 'There already are accounts in this library.' }),
+    signedInAdmin ? null : el('div', { class: 'inline-form' }, el('button', { class: 'btn', type: 'button', text: 'Sign in',
+      onclick: () => { settingsDlg.close(); showSignIn('admin'); } })),
+    admins.length ? el('details', { class: 'reset' },
+      el('summary', { text: 'Forgot the administrator password?' }),
+      el('p', { class: 'panel-note', text: 'On the pc that runs the library you can give an administrator account a new password (8 characters or more). It works only here, never from another pc; the account is signed out everywhere else.' }),
+      reset, msg) : null);
+}
+
 let packSay = null;
 let packProgressBound = false;
 // data packs: thousands of openly licensed parts (KiCad, FreeCAD, standard parts, ...) in the general library

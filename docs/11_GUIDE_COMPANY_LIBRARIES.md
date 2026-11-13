@@ -98,6 +98,8 @@ After signing in:
 - Your own parts show **Your company** on the card; restricted parts show their group.
 
 Wrong password five times in a row: wait 15 minutes. Forgot it: ask the administrator for a new one.
+The administrator forgot their own password: on the pc that runs the library, open **Settings → Accounts →
+Forgot the administrator password?** and give the account a new one (this works only on that pc).
 
 ### Upload a folder
 Your name → **My library** → **Upload a folder** → choose a folder on your pc.
